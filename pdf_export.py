@@ -53,34 +53,63 @@ LOGO_PATH = "logo.png"
 
 
 def _register_arabic_font() -> str:
-    """تسجيل خط عربي مناسب."""
-    # قائمة بمسارات الخطوط العربية المحتملة
-    candidates = [
-        # Windows
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\tahoma.ttf",
-        r"C:\Windows\Fonts\Times New Roman.ttf",
-        r"C:\Windows\Fonts\Arial.ttf",
-        # Linux
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
-        # Mac
-        "/Library/Fonts/Arial.ttf",
-        "/System/Library/Fonts/Helvetica.ttf",
-    ]
+    """تسجيل خط عربي - البحث في مجلد Fonts أولاً"""
     
-    for path in candidates:
-        if os.path.exists(path):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # ============================================================
+    # 1. البحث في مجلد Fonts
+    # ============================================================
+    fonts_dir = os.path.join(current_dir, "Fonts")
+    if os.path.exists(fonts_dir):
+        font_files = ["arial.ttf", "tahoma.ttf", "times.ttf", "Arial.ttf", "Tahoma.ttf", "arabic.ttf"]
+        for font_file in font_files:
+            font_path = os.path.join(fonts_dir, font_file)
+            if os.path.exists(font_path):
+                try:
+                    pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
+                    print(f"✅ تم تحميل الخط من Fonts: {font_path}")
+                    return "ArabicFont"
+                except Exception as e:
+                    print(f"⚠️ فشل تحميل {font_path}: {e}")
+                    continue
+    
+    # ============================================================
+    # 2. البحث في مجلد المشروع الرئيسي
+    # ============================================================
+    font_files = ["arial.ttf", "tahoma.ttf", "times.ttf", "Arial.ttf", "Tahoma.ttf"]
+    for font_file in font_files:
+        font_path = os.path.join(current_dir, font_file)
+        if os.path.exists(font_path):
             try:
-                pdfmetrics.registerFont(TTFont("ArabicFont", path))
-                print(f"✅ تم تحميل الخط: {path}")
+                pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
+                print(f"✅ تم تحميل الخط من المشروع: {font_path}")
                 return "ArabicFont"
             except Exception as e:
-                print(f"⚠️ فشل تحميل الخط {path}: {e}")
                 continue
     
-    print("⚠️ لم يتم العثور على خط عربي، سيتم استخدام Helvetica")
+    # ============================================================
+    # 3. البحث في نظام Windows
+    # ============================================================
+    system_fonts = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+        r"C:\Windows\Fonts\times.ttf",
+        r"C:\Windows\Fonts\Arial.ttf",
+        r"C:\Windows\Fonts\Tahoma.ttf",
+    ]
+    
+    for font_path in system_fonts:
+        if os.path.exists(font_path):
+            try:
+                pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
+                print(f"✅ تم تحميل الخط من النظام: {font_path}")
+                return "ArabicFont"
+            except Exception as e:
+                continue
+    
+    print("❌ لم يتم العثور على خط عربي!")
+    print("💡 يرجى وضع ملف arial.ttf في مجلد Fonts")
     return "Helvetica"
 
 
@@ -116,7 +145,6 @@ def _percent(value) -> str:
 def _styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
     
-    # إنشاء أنماط تدعم العربية
     return {
         "cover_title": ParagraphStyle(
             "CoverTitle",
@@ -203,7 +231,6 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 
 def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
-    """إنشاء فقرة مع دعم RTL."""
     return Paragraph(_rtl(text), style)
 
 
@@ -233,7 +260,6 @@ def _draw_logo(c: canvas.Canvas, x: float, y: float, size: float):
         except Exception:
             pass
     
-    # شعار نصي بديل
     c.setFillColor(colors.HexColor(PALE_BLUE))
     c.circle(x + size / 2, y + size / 2, size / 2, stroke=0, fill=1)
     c.setFillColor(colors.HexColor(BLUE))
@@ -450,7 +476,6 @@ def _chart_theme(fig: go.Figure, title: str, height: int = 280) -> go.Figure:
 
 
 def _plotly_image(fig: go.Figure, width: int = 700, height: int = 250) -> Image | Table:
-    """تحويل المخطط إلى صورة مع تحسين الأداء."""
     try:
         png = fig.to_image(format="png", width=width, height=height, scale=1)
         image = Image(BytesIO(png), width=18.0 * cm, height=(18.0 * cm) * height / width)
@@ -458,7 +483,6 @@ def _plotly_image(fig: go.Figure, width: int = 700, height: int = 250) -> Image 
         return image
     except Exception as e:
         print(f"⚠️ خطأ في تحويل المخطط: {e}")
-        # نص بديل في حال فشل تحويل الصورة
         fallback = Table(
             [[_rtl("⚠️ تعذر تحويل الرسم إلى صورة")]],
             colWidths=[PAGE_WIDTH - 2.8 * cm],
@@ -664,7 +688,6 @@ def export_to_pdf(
     report_period,
     records_count,
 ) -> BytesIO:
-    """إنشاء تقرير PDF تنفيذي."""
     start = time.time()
     output = BytesIO()
     document = SimpleDocTemplate(
