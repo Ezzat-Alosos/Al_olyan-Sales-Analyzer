@@ -1,8 +1,10 @@
 ﻿from __future__ import annotations
+
 import os
 from datetime import datetime
 from io import BytesIO
 from typing import Iterable
+
 import pandas as pd
 import plotly.graph_objects as go
 from reportlab.lib import colors
@@ -33,9 +35,9 @@ except ImportError:
     arabic_reshaper = None
     get_display = None
 
-PROGRAM_NAME = "تقرير العليان لتحليل المبيعات"
-PROGRAM_SUBTITLE = "Al-olyan Professional Sales Analyzer 2026"
-DEVELOPER_NAME = "المهندس المالي : عزت العليان | أتمتة الأعمال بلغة البايثون والذكاء الاصطناعي"
+PROGRAM_NAME = "تقرير العصعص لتحليل المبيعات"
+PROGRAM_SUBTITLE = "Al-osos Professional Sales Analyzer 2026"
+DEVELOPER_NAME = "المهندس المالي : عزت العصعص | أتمتة الأعمال بلغة البايثون والذكاء الاصطناعي"
 CONTACT_LINE = "للتواصل : 777884468"
 
 PAGE_SIZE = landscape(A4)
@@ -51,24 +53,49 @@ LOGO_PATH = "logo.png"
 
 
 def _register_arabic_font() -> str:
+    """تسجيل خط عربي مناسب."""
+    # قائمة بمسارات الخطوط العربية المحتملة
     candidates = [
+        # Windows
         r"C:\Windows\Fonts\arial.ttf",
         r"C:\Windows\Fonts\tahoma.ttf",
+        r"C:\Windows\Fonts\Times New Roman.ttf",
+        r"C:\Windows\Fonts\Arial.ttf",
+        # Linux
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+        # Mac
+        "/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttf",
     ]
+    
     for path in candidates:
         if os.path.exists(path):
-            pdfmetrics.registerFont(TTFont("ArabicFont", path))
-            return "ArabicFont"
+            try:
+                pdfmetrics.registerFont(TTFont("ArabicFont", path))
+                print(f"✅ تم تحميل الخط: {path}")
+                return "ArabicFont"
+            except Exception as e:
+                print(f"⚠️ فشل تحميل الخط {path}: {e}")
+                continue
+    
+    print("⚠️ لم يتم العثور على خط عربي، سيتم استخدام Helvetica")
     return "Helvetica"
+
 
 FONT_NAME = _register_arabic_font()
 
 
 def _rtl(value) -> str:
+    """تحويل النص إلى RTL مع تشكيل مناسب."""
     text = "" if pd.isna(value) else str(value)
     if arabic_reshaper and get_display:
-        return get_display(arabic_reshaper.reshape(text))
+        try:
+            reshaped = arabic_reshaper.reshape(text)
+            return get_display(reshaped)
+        except Exception:
+            return text
     return text
 
 
@@ -88,6 +115,8 @@ def _percent(value) -> str:
 
 def _styles() -> dict[str, ParagraphStyle]:
     base = getSampleStyleSheet()
+    
+    # إنشاء أنماط تدعم العربية
     return {
         "cover_title": ParagraphStyle(
             "CoverTitle",
@@ -174,6 +203,7 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 
 def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
+    """إنشاء فقرة مع دعم RTL."""
     return Paragraph(_rtl(text), style)
 
 
@@ -202,30 +232,42 @@ def _draw_logo(c: canvas.Canvas, x: float, y: float, size: float):
             return
         except Exception:
             pass
+    
+    # شعار نصي بديل
     c.setFillColor(colors.HexColor(PALE_BLUE))
     c.circle(x + size / 2, y + size / 2, size / 2, stroke=0, fill=1)
     c.setFillColor(colors.HexColor(BLUE))
     c.circle(x + size / 2, y + size / 2, size * 0.33, stroke=0, fill=1)
     c.setFillColor(colors.white)
     c.setFont(FONT_NAME, 8)
-    c.drawCentredString(x + size / 2, y + size / 2 - 3, _rtl("العليان"))
+    c.drawCentredString(x + size / 2, y + size / 2 - 3, _rtl("العصعص"))
 
 
 def _draw_header(c: canvas.Canvas):
     c.saveState()
     top = PAGE_HEIGHT - 1.0 * cm
+    
     center_logo_path = "logo2.png"
     logo_size = 0.8 * cm
+    
     if os.path.exists(center_logo_path):
-        c.drawImage(ImageReader(center_logo_path), (PAGE_WIDTH / 2) - (logo_size / 2), top - 0.8 * cm, width=logo_size, height=logo_size, preserveAspectRatio=True, mask="auto")
+        try:
+            c.drawImage(ImageReader(center_logo_path), (PAGE_WIDTH / 2) - (logo_size / 2), top - 0.8 * cm, width=logo_size, height=logo_size, preserveAspectRatio=True, mask="auto")
+        except Exception:
+            c.setFont(FONT_NAME, 8)
+            c.setFillColor(colors.HexColor(BLUE))
+            c.drawCentredString(PAGE_WIDTH / 2, top - 0.4 * cm, _rtl("هنا سنضع شعار شركتك"))
     else:
         c.setFont(FONT_NAME, 8)
         c.setFillColor(colors.HexColor(BLUE))
         c.drawCentredString(PAGE_WIDTH / 2, top - 0.4 * cm, _rtl("هنا سنضع شعار شركتك"))
+    
     _draw_logo(c, 1.15 * cm, top - 0.72 * cm, 0.62 * cm)
+    
     c.setFont(FONT_NAME, 15)
     c.setFillColor(colors.HexColor(NAVY))
-    c.drawRightString(PAGE_WIDTH - 1.15 * cm, top - 0.2 * cm, _rtl("العليان"))
+    c.drawRightString(PAGE_WIDTH - 1.15 * cm, top - 0.2 * cm, _rtl("العصعص"))
+    
     c.setStrokeColor(colors.HexColor(BLUE))
     c.setLineWidth(1.1)
     c.line(1.15 * cm, top - 0.92 * cm, PAGE_WIDTH - 1.15 * cm, top - 0.92 * cm)
@@ -241,10 +283,12 @@ def _draw_footer(c: canvas.Canvas, page_number: int, page_count: int):
     c.setStrokeColor(colors.HexColor(PALE_BLUE))
     c.setLineWidth(0.8)
     c.line(1.15 * cm, y + 0.56 * cm, PAGE_WIDTH - 1.15 * cm, y + 0.56 * cm)
+    
     c.setFont(FONT_NAME, 7.5)
     c.setFillColor(colors.HexColor(LIGHT_BLUE))
     c.drawCentredString(PAGE_WIDTH / 2, y + 0.26 * cm, _rtl(DEVELOPER_NAME))
     c.drawCentredString(PAGE_WIDTH / 2, y - 0.04 * cm, _rtl(CONTACT_LINE))
+    
     page_text = f"الصفحة {page_number} من {page_count}"
     c.setFont(FONT_NAME, 8)
     c.setFillColor(colors.HexColor(NAVY))
@@ -285,7 +329,8 @@ def _cover_logo() -> Image | Table:
             return logo
         except Exception:
             pass
-    table = Table([[_rtl("العليان")]], colWidths=[3.0 * cm], rowHeights=[3.0 * cm])
+    
+    table = Table([[_rtl("العصعص")]], colWidths=[3.0 * cm], rowHeights=[3.0 * cm])
     table.setStyle(
         TableStyle(
             [
@@ -314,6 +359,7 @@ def _metric_cards(metrics: dict, styles: dict[str, ParagraphStyle]) -> Table:
     row = []
     for label, value in cards:
         row.append([_paragraph(label, styles["card_label"]), _paragraph(value, styles["card_value"])])
+    
     nested = []
     for card in row:
         card_table = Table([[card[0]], [card[1]]], colWidths=[4.05 * cm], rowHeights=[0.55 * cm, 0.75 * cm])
@@ -333,6 +379,7 @@ def _metric_cards(metrics: dict, styles: dict[str, ParagraphStyle]) -> Table:
             )
         )
         nested.append(card_table)
+    
     table = Table([nested[:3], nested[3:]], colWidths=[4.25 * cm, 4.25 * cm, 4.25 * cm], hAlign="CENTER")
     table.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
     return table
@@ -342,6 +389,7 @@ def _format_frame(frame: pd.DataFrame, max_rows: int) -> pd.DataFrame:
     shown = frame.head(max_rows).copy()
     if shown.empty:
         return pd.DataFrame({"البيان": ["لا توجد بيانات"]})
+    
     for column in shown.columns:
         if column in ["الحالي", "السابق", "الفرق", "القيمة"]:
             shown[column] = shown[column].map(_money)
@@ -354,9 +402,11 @@ def _table_from_frame(frame: pd.DataFrame, max_rows: int = 16) -> Table:
     shown = _format_frame(frame, max_rows)
     data = [[_rtl(column) for column in shown.columns]]
     data.extend([[_rtl(value) for value in row] for row in shown.astype(str).values.tolist()])
+    
     available_width = PAGE_WIDTH - 2.8 * cm
     col_count = max(len(shown.columns), 1)
     col_widths = [available_width / col_count] * col_count
+    
     table = Table(data, colWidths=col_widths, repeatRows=1, hAlign="CENTER")
     table.setStyle(
         TableStyle(
@@ -381,7 +431,7 @@ def _table_from_frame(frame: pd.DataFrame, max_rows: int = 16) -> Table:
 
 
 # ============================================================
-# دوال المخططات (بدون Treemap)
+# دوال المخططات
 # ============================================================
 def _chart_theme(fig: go.Figure, title: str, height: int = 280) -> go.Figure:
     fig.update_layout(
@@ -400,14 +450,17 @@ def _chart_theme(fig: go.Figure, title: str, height: int = 280) -> go.Figure:
 
 
 def _plotly_image(fig: go.Figure, width: int = 700, height: int = 250) -> Image | Table:
+    """تحويل المخطط إلى صورة مع تحسين الأداء."""
     try:
         png = fig.to_image(format="png", width=width, height=height, scale=1)
         image = Image(BytesIO(png), width=18.0 * cm, height=(18.0 * cm) * height / width)
         image.hAlign = "CENTER"
         return image
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ خطأ في تحويل المخطط: {e}")
+        # نص بديل في حال فشل تحويل الصورة
         fallback = Table(
-            [[_rtl("تعذر تحويل الرسم إلى صورة.")]],
+            [[_rtl("⚠️ تعذر تحويل الرسم إلى صورة")]],
             colWidths=[PAGE_WIDTH - 2.8 * cm],
             rowHeights=[1.2 * cm],
         )
@@ -611,6 +664,7 @@ def export_to_pdf(
     report_period,
     records_count,
 ) -> BytesIO:
+    """إنشاء تقرير PDF تنفيذي."""
     start = time.time()
     output = BytesIO()
     document = SimpleDocTemplate(

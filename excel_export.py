@@ -49,7 +49,7 @@ def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
 
 
 def _create_chart_image(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي", y2_col: str = None) -> BytesIO:
-    """إنشاء صورة للشارت - Bar, Pie, Pareto, Trend"""
+    """إنشاء صورة للشارت باستخدام Plotly."""
     data = df.head(10).copy()
     if data.empty or len(data) < 2:
         return None
@@ -146,14 +146,16 @@ def _create_chart_image(df: pd.DataFrame, chart_type: str, title: str, x_col: st
         fig.update_yaxes(gridcolor="#bfdbfe", linecolor="#93c5fd")
     
     try:
-        img_bytes = pio.to_image(fig, format="png", scale=2)
+        # استخدام format="png" مع scale=1.5 للحصول على جودة جيدة
+        img_bytes = pio.to_image(fig, format="png", scale=1.5)
         return BytesIO(img_bytes)
     except Exception as e:
-        print(f"خطأ في إنشاء الصورة: {e}")
+        print(f"❌ خطأ في إنشاء الصورة: {e}")
         return None
 
 
 def _add_image_to_sheet(worksheet, img_bytes: BytesIO, cell_position: str, width: int = 300, height: int = 200):
+    """إضافة صورة إلى الورقة."""
     try:
         img_bytes.seek(0)
         img = XLImage(img_bytes)
@@ -162,12 +164,12 @@ def _add_image_to_sheet(worksheet, img_bytes: BytesIO, cell_position: str, width
         worksheet.add_image(img, cell_position)
         return True
     except Exception as e:
-        print(f"خطأ في إضافة الصورة: {e}")
+        print(f"❌ خطأ في إضافة الصورة: {e}")
         return False
 
 
 def _write_sheet_with_charts(writer, sheet_name: str, frame: pd.DataFrame, chart_title: str = None):
-    """كتابة ورقة مع Bar و Pie فقط (بدون Treemap)"""
+    """كتابة ورقة مع Bar و Pie."""
     safe_frame = frame.copy()
     if safe_frame.empty:
         safe_frame = pd.DataFrame({"البيان": ["لا توجد بيانات"]})
@@ -244,15 +246,12 @@ def _write_sheet_with_charts(writer, sheet_name: str, frame: pd.DataFrame, chart
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)
-            error_cell.value = f"⚠️ تعذر إضافة المخططات"
+            error_cell.value = f"⚠️ تعذر إضافة المخططات: {str(e)[:50]}"
             error_cell.font = Font(color="EF4444", size=10)
 
 
-# ============================================================
-# دوال جديدة لإضافة باريتو والاتجاهات
-# ============================================================
 def _write_pareto_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_title: str = "تحليل باريتو"):
-    """كتابة ورقة تحليل باريتو مع مخطط"""
+    """كتابة ورقة تحليل باريتو مع مخطط."""
     safe_frame = frame.copy()
     if safe_frame.empty:
         safe_frame = pd.DataFrame({"البيان": ["لا توجد بيانات"]})
@@ -281,7 +280,6 @@ def _write_pareto_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_titl
             
             current_row = 2
             
-            # مخطط باريتو
             try:
                 img_bytes = _create_chart_image(
                     frame, "pareto", chart_title,
@@ -327,12 +325,12 @@ def _write_pareto_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_titl
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)
-            error_cell.value = f"⚠️ تعذر إضافة المخطط"
+            error_cell.value = f"⚠️ تعذر إضافة المخطط: {str(e)[:50]}"
             error_cell.font = Font(color="EF4444", size=10)
 
 
 def _write_trend_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_title: str = "تحليل الاتجاهات"):
-    """كتابة ورقة تحليل الاتجاهات مع مخطط"""
+    """كتابة ورقة تحليل الاتجاهات مع مخطط."""
     safe_frame = frame.copy()
     if safe_frame.empty:
         safe_frame = pd.DataFrame({"البيان": ["لا توجد بيانات"]})
@@ -361,9 +359,7 @@ def _write_trend_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_title
             
             current_row = 2
             
-            # مخطط الاتجاهات
             try:
-                # استخدام أول عمودين من البيانات
                 x_col = frame.columns[0]
                 y_col = frame.columns[1] if len(frame.columns) > 1 else frame.columns[0]
                 
@@ -411,7 +407,7 @@ def _write_trend_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_title
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)
-            error_cell.value = f"⚠️ تعذر إضافة المخطط"
+            error_cell.value = f"⚠️ تعذر إضافة المخطط: {str(e)[:50]}"
             error_cell.font = Font(color="EF4444", size=10)
 
 
@@ -426,17 +422,7 @@ def export_to_excel(
     pareto_products: pd.DataFrame = None,
     trend_data: pd.DataFrame = None,
 ) -> BytesIO:
-    """
-    إنشاء ملف Excel مع:
-    - Dashboard (المؤشرات)
-    - العملاء (جدول + مخططات)
-    - المنتجات (جدول + مخططات)
-    - المناديب (جدول + مخططات)
-    - الفروع (جدول + مخططات)
-    - تحليل باريتو (جدول + مخطط)
-    - تحليل الاتجاهات (جدول + مخطط)
-    - Insights (الرؤى)
-    """
+    """إنشاء ملف Excel متكامل."""
     start = time.time()
     output = BytesIO()
 
@@ -461,18 +447,14 @@ def export_to_excel(
         _write_sheet_with_charts(writer, "المناديب", representatives, "تحليل المناديب")
         _write_sheet_with_charts(writer, "الفروع", branches, "تحليل الفروع")
         
-        # ============================================================
-        # إضافة تحليل باريتو (إذا توفرت البيانات)
-        # ============================================================
+        # باريتو
         if pareto_customers is not None and not pareto_customers.empty:
-            _write_pareto_sheet(writer, "باريتو - العملاء", pareto_customers, "تحليل باريتو للعملاء")
+            _write_pareto_sheet(writer, "باريتو العملاء", pareto_customers, "تحليل باريتو للعملاء")
         
         if pareto_products is not None and not pareto_products.empty:
-            _write_pareto_sheet(writer, "باريتو - المنتجات", pareto_products, "تحليل باريتو للمنتجات")
+            _write_pareto_sheet(writer, "باريتو المنتجات", pareto_products, "تحليل باريتو للمنتجات")
         
-        # ============================================================
-        # إضافة تحليل الاتجاهات (إذا توفرت البيانات)
-        # ============================================================
+        # الاتجاهات
         if trend_data is not None and not trend_data.empty:
             _write_trend_sheet(writer, "تحليل الاتجاهات", trend_data, "تحليل اتجاهات المبيعات")
         
