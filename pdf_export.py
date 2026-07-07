@@ -53,50 +53,33 @@ LOGO_PATH = "logo.png"
 
 
 def _register_arabic_font() -> str:
-    """تسجيل خط عربي - البحث في مجلد Fonts أولاً"""
+    """تسجيل خط عربي - البحث في مجلد المشروع أولاً"""
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
     # ============================================================
-    # 1. البحث في مجلد Fonts
+    # 1. البحث في مجلد المشروع الرئيسي (بجانب app.py)
     # ============================================================
-    fonts_dir = os.path.join(current_dir, "Fonts")
-    if os.path.exists(fonts_dir):
-        font_files = ["arial.ttf", "tahoma.ttf", "times.ttf", "Arial.ttf", "Tahoma.ttf", "arabic.ttf"]
-        for font_file in font_files:
-            font_path = os.path.join(fonts_dir, font_file)
-            if os.path.exists(font_path):
-                try:
-                    pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
-                    print(f"✅ تم تحميل الخط من Fonts: {font_path}")
-                    return "ArabicFont"
-                except Exception as e:
-                    print(f"⚠️ فشل تحميل {font_path}: {e}")
-                    continue
+    font_files = ["arial.ttf", "tahoma.ttf", "times.ttf", "ARIAL.TTF", "Tahoma.ttf", "Times.ttf"]
     
-    # ============================================================
-    # 2. البحث في مجلد المشروع الرئيسي
-    # ============================================================
-    font_files = ["arial.ttf", "tahoma.ttf", "times.ttf", "Arial.ttf", "Tahoma.ttf"]
     for font_file in font_files:
         font_path = os.path.join(current_dir, font_file)
         if os.path.exists(font_path):
             try:
                 pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
-                print(f"✅ تم تحميل الخط من المشروع: {font_path}")
+                print(f"✅ تم تحميل الخط: {font_path}")
                 return "ArabicFont"
             except Exception as e:
+                print(f"⚠️ فشل تحميل {font_file}: {e}")
                 continue
     
     # ============================================================
-    # 3. البحث في نظام Windows
+    # 2. البحث في نظام Windows (احتياطي)
     # ============================================================
     system_fonts = [
         r"C:\Windows\Fonts\arial.ttf",
         r"C:\Windows\Fonts\tahoma.ttf",
         r"C:\Windows\Fonts\times.ttf",
-        r"C:\Windows\Fonts\Arial.ttf",
-        r"C:\Windows\Fonts\Tahoma.ttf",
     ]
     
     for font_path in system_fonts:
@@ -109,7 +92,7 @@ def _register_arabic_font() -> str:
                 continue
     
     print("❌ لم يتم العثور على خط عربي!")
-    print("💡 يرجى وضع ملف arial.ttf في مجلد Fonts")
+    print("💡 يرجى وضع ملف arial.ttf في مجلد المشروع")
     return "Helvetica"
 
 
@@ -688,6 +671,7 @@ def export_to_pdf(
     report_period,
     records_count,
 ) -> BytesIO:
+    """إنشاء تقرير PDF تنفيذي."""
     start = time.time()
     output = BytesIO()
     document = SimpleDocTemplate(
