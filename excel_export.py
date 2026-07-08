@@ -8,6 +8,8 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 import time
 import os
 
+import matplotlib.pyplot as plt
+
 # محاولة تعيين محرك kaleido
 try:
     import kaleido
