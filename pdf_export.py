@@ -1,7 +1,5 @@
 ﻿from __future__ import annotations
 
-import matplotlib.pyplot as plt
-
 import os
 from datetime import datetime
 from io import BytesIO
@@ -30,12 +28,16 @@ from reportlab.platypus import (
 )
 import time
 
+# ============================================================
+# استيراد مكتبات اللغة العربية
+# ============================================================
 try:
     import arabic_reshaper
     from bidi.algorithm import get_display
 except ImportError:
     arabic_reshaper = None
     get_display = None
+
 
 PROGRAM_NAME = "تقرير العصعص لتحليل المبيعات"
 PROGRAM_SUBTITLE = "Al-osos Professional Sales Analyzer 2026"
@@ -54,43 +56,30 @@ WHITE = "#ffffff"
 LOGO_PATH = "logo.png"
 
 
+# ============================================================
+# دالة تسجيل الخط العربي
+# ============================================================
 def _register_arabic_font() -> str:
-    """تسجيل خط عربي - البحث في مجلد المشروع أولاً"""
+    """تسجيل الخط العربي"""
+    font_path = os.path.join(os.path.dirname(__file__), 'arial.ttf')
     
-    current_dir = os.path.dirname(os.path.abspath(__file__))
+    if os.path.exists(font_path):
+        try:
+            pdfmetrics.registerFont(TTFont('ArabicFont', font_path))
+            print(f"✅ تم تحميل الخط: {font_path}")
+            return "ArabicFont"
+        except Exception as e:
+            print(f"⚠️ فشل تحميل الخط: {e}")
     
-    # ============================================================
-    # 1. البحث في مجلد المشروع الرئيسي (بجانب app.py)
-    # ============================================================
-    font_files = ["arial.ttf", "tahoma.ttf", "times.ttf", "ARIAL.TTF", "Tahoma.ttf", "Times.ttf"]
-    
-    for font_file in font_files:
-        font_path = os.path.join(current_dir, font_file)
+    other_fonts = ['tahoma.ttf', 'times.ttf']
+    for font_file in other_fonts:
+        font_path = os.path.join(os.path.dirname(__file__), font_file)
         if os.path.exists(font_path):
             try:
-                pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
+                pdfmetrics.registerFont(TTFont('ArabicFont', font_path))
                 print(f"✅ تم تحميل الخط: {font_path}")
                 return "ArabicFont"
-            except Exception as e:
-                print(f"⚠️ فشل تحميل {font_file}: {e}")
-                continue
-    
-    # ============================================================
-    # 2. البحث في نظام Windows (احتياطي)
-    # ============================================================
-    system_fonts = [
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\tahoma.ttf",
-        r"C:\Windows\Fonts\times.ttf",
-    ]
-    
-    for font_path in system_fonts:
-        if os.path.exists(font_path):
-            try:
-                pdfmetrics.registerFont(TTFont("ArabicFont", font_path))
-                print(f"✅ تم تحميل الخط من النظام: {font_path}")
-                return "ArabicFont"
-            except Exception as e:
+            except Exception:
                 continue
     
     print("❌ لم يتم العثور على خط عربي!")
@@ -98,21 +87,29 @@ def _register_arabic_font() -> str:
     return "Helvetica"
 
 
+# تسجيل الخط
 FONT_NAME = _register_arabic_font()
 
 
-def _rtl(value) -> str:
-    """تحويل النص إلى RTL مع تشكيل مناسب."""
-    text = "" if pd.isna(value) else str(value)
+# ============================================================
+# دالة معالجة النص العربي (ar)
+# ============================================================
+def ar(text) -> str:
+    """تحويل النص إلى RTL مع تشكيل مناسب"""
+    if text is None:
+        return ""
     if arabic_reshaper and get_display:
         try:
-            reshaped = arabic_reshaper.reshape(text)
+            reshaped = arabic_reshaper.reshape(str(text))
             return get_display(reshaped)
         except Exception:
-            return text
-    return text
+            return str(text)
+    return str(text)
 
 
+# ============================================================
+# دوال التنسيق الأخرى
+# ============================================================
 def _money(value) -> str:
     try:
         return f"{float(value):,.2f}"
@@ -132,8 +129,8 @@ def _styles() -> dict[str, ParagraphStyle]:
     
     return {
         "cover_title": ParagraphStyle(
-            "CoverTitle",
-            parent=base["Title"],
+            'CoverTitle',
+            parent=base['Title'],
             fontName=FONT_NAME,
             fontSize=30,
             leading=40,
@@ -141,8 +138,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(NAVY),
         ),
         "cover_subtitle": ParagraphStyle(
-            "CoverSubtitle",
-            parent=base["Normal"],
+            'CoverSubtitle',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=13,
             leading=22,
@@ -150,8 +147,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(BLUE),
         ),
         "section_title": ParagraphStyle(
-            "SectionTitle",
-            parent=base["Heading2"],
+            'SectionTitle',
+            parent=base['Heading2'],
             fontName=FONT_NAME,
             fontSize=15,
             leading=20,
@@ -159,8 +156,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.white,
         ),
         "normal": ParagraphStyle(
-            "ArabicNormal",
-            parent=base["Normal"],
+            'ArabicNormal',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=10,
             leading=16,
@@ -168,8 +165,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(NAVY),
         ),
         "small": ParagraphStyle(
-            "ArabicSmall",
-            parent=base["Normal"],
+            'ArabicSmall',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=8.5,
             leading=13,
@@ -177,8 +174,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(BLUE),
         ),
         "toc": ParagraphStyle(
-            "ArabicTOC",
-            parent=base["Normal"],
+            'ArabicTOC',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=12,
             leading=22,
@@ -186,8 +183,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(NAVY),
         ),
         "card_label": ParagraphStyle(
-            "CardLabel",
-            parent=base["Normal"],
+            'CardLabel',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=8.5,
             leading=12,
@@ -195,8 +192,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(BLUE),
         ),
         "card_value": ParagraphStyle(
-            "CardValue",
-            parent=base["Normal"],
+            'CardValue',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=13,
             leading=17,
@@ -204,8 +201,8 @@ def _styles() -> dict[str, ParagraphStyle]:
             textColor=colors.HexColor(NAVY),
         ),
         "table_header": ParagraphStyle(
-            "TableHeader",
-            parent=base["Normal"],
+            'TableHeader',
+            parent=base['Normal'],
             fontName=FONT_NAME,
             fontSize=12,
             leading=16,
@@ -216,122 +213,284 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 
 def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
-    return Paragraph(_rtl(text), style)
+    """إنشاء فقرة باستخدام دالة ar"""
+    return Paragraph(ar(text), style)
 
 
-class ProfessionalCanvas(canvas.Canvas):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._saved_pages = []
-
-    def showPage(self):
-        self._saved_pages.append(dict(self.__dict__))
-        self._startPage()
-
-    def save(self):
-        page_count = len(self._saved_pages)
-        for page in self._saved_pages:
-            self.__dict__.update(page)
-            _draw_page_template(self, self._pageNumber, page_count)
-            super().showPage()
-        super().save()
-
-
-def _draw_logo(c: canvas.Canvas, x: float, y: float, size: float):
-    if os.path.exists(LOGO_PATH):
-        try:
-            c.drawImage(ImageReader(LOGO_PATH), x, y, width=size, height=size, preserveAspectRatio=True, mask="auto")
-            return
-        except Exception:
-            pass
+# ============================================================
+# دوال الرسم (matplotlib) - بديل عن kaleido
+# ============================================================
+def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي", y2_col: str = None) -> BytesIO | None:
+    """إنشاء صورة للشارت باستخدام matplotlib (بدون kaleido)."""
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib
+        matplotlib.use('Agg')
+        import numpy as np
+    except ImportError:
+        print("❌ matplotlib غير مثبت")
+        return None
     
-    c.setFillColor(colors.HexColor(PALE_BLUE))
-    c.circle(x + size / 2, y + size / 2, size / 2, stroke=0, fill=1)
-    c.setFillColor(colors.HexColor(BLUE))
-    c.circle(x + size / 2, y + size / 2, size * 0.33, stroke=0, fill=1)
-    c.setFillColor(colors.white)
-    c.setFont(FONT_NAME, 8)
-    c.drawCentredString(x + size / 2, y + size / 2 - 3, _rtl("العصعص"))
-
-
-def _draw_header(c: canvas.Canvas):
-    c.saveState()
-    top = PAGE_HEIGHT - 1.0 * cm
+    data = df.head(10).copy()
+    if data.empty or len(data) < 2:
+        return None
     
-    center_logo_path = "logo2.png"
-    logo_size = 0.8 * cm
+    data = data.dropna(subset=[x_col, y_col])
+    if data.empty:
+        return None
     
-    if os.path.exists(center_logo_path):
-        try:
-            c.drawImage(ImageReader(center_logo_path), (PAGE_WIDTH / 2) - (logo_size / 2), top - 0.8 * cm, width=logo_size, height=logo_size, preserveAspectRatio=True, mask="auto")
-        except Exception:
-            c.setFont(FONT_NAME, 8)
-            c.setFillColor(colors.HexColor(BLUE))
-            c.drawCentredString(PAGE_WIDTH / 2, top - 0.4 * cm, _rtl("هنا سنضع شعار شركتك"))
+    # إنشاء الرسم
+    fig, ax = plt.subplots(figsize=(6, 4))
+    
+    if chart_type == "bar":
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe']
+        bars = ax.bar(x, y, color=colors_list[:len(x)])
+        ax.set_ylabel('المبيعات')
+        ax.set_title(title, fontsize=12)
+        for bar, val in zip(bars, y):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
+                   f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
+        plt.xticks(rotation=45, ha='right')
+        
+    elif chart_type == "pie":
+        data = data.sort_values(y_col, ascending=False)
+        labels = data[x_col].astype(str).tolist()
+        values = data[y_col].tolist()
+        total = sum(values)
+        if total > 0:
+            colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff']
+            wedges, texts, autotexts = ax.pie(
+                values, 
+                labels=labels, 
+                autopct=lambda pct: f'{pct:.1f}%' if pct > 2 else '',
+                colors=colors_list[:len(labels)],
+                startangle=90,
+                pctdistance=0.85
+            )
+            ax.set_title(title, fontsize=12)
+            for text in texts:
+                text.set_fontsize(8)
+            for autotext in autotexts:
+                autotext.set_fontsize(8)
+                autotext.set_color('white')
+        
+    elif chart_type == "pareto":
+        data = data.sort_values(y_col, ascending=False)
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        
+        colors_list = ['#2563eb'] * len(x)
+        bars = ax.bar(x, y, color=colors_list, alpha=0.7)
+        ax.set_ylabel('المبيعات', color='blue')
+        ax.tick_params(axis='y', labelcolor='blue')
+        
+        total = sum(y)
+        cumsum = 0
+        cum_percentages = []
+        for val in y:
+            cumsum += val
+            cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
+        
+        ax2 = ax.twinx()
+        ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=6)
+        ax2.axhline(y=80, color='red', linestyle='--', alpha=0.5)
+        ax2.text(len(x)-1, 82, '80%', color='red', fontsize=9, ha='right')
+        ax2.set_ylabel('النسبة التراكمية %', color='red')
+        ax2.tick_params(axis='y', labelcolor='red')
+        ax2.set_ylim(0, 105)
+        ax.set_title(title, fontsize=12)
+        plt.xticks(rotation=45, ha='right')
+        
+    elif chart_type == "trend":
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        ax.bar(x, y, color='#2563eb', alpha=0.6, label='المبيعات')
+        ax.plot(x, y, color='red', marker='o', linewidth=2, markersize=8, label='خط الاتجاه')
+        ax.set_ylabel('المبيعات')
+        ax.set_title(title, fontsize=12)
+        ax.legend()
+        plt.xticks(rotation=45, ha='right')
+    
     else:
-        c.setFont(FONT_NAME, 8)
-        c.setFillColor(colors.HexColor(BLUE))
-        c.drawCentredString(PAGE_WIDTH / 2, top - 0.4 * cm, _rtl("هنا سنضع شعار شركتك"))
+        plt.close()
+        return None
     
-    _draw_logo(c, 1.15 * cm, top - 0.72 * cm, 0.62 * cm)
+    plt.tight_layout()
     
-    c.setFont(FONT_NAME, 15)
-    c.setFillColor(colors.HexColor(NAVY))
-    c.drawRightString(PAGE_WIDTH - 1.15 * cm, top - 0.2 * cm, _rtl("العصعص"))
-    
-    c.setStrokeColor(colors.HexColor(BLUE))
-    c.setLineWidth(1.1)
-    c.line(1.15 * cm, top - 0.92 * cm, PAGE_WIDTH - 1.15 * cm, top - 0.92 * cm)
-    c.setStrokeColor(colors.HexColor(PALE_BLUE))
-    c.setLineWidth(2.0)
-    c.line(1.15 * cm, top - 1.02 * cm, PAGE_WIDTH - 1.15 * cm, top - 1.02 * cm)
-    c.restoreState()
+    try:
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+        img_buffer.seek(0)
+        plt.close()
+        return img_buffer
+    except Exception as e:
+        print(f"❌ خطأ في حفظ الصورة: {e}")
+        plt.close()
+        return None
 
 
-def _draw_footer(c: canvas.Canvas, page_number: int, page_count: int):
-    c.saveState()
-    y = 1.0 * cm
-    c.setStrokeColor(colors.HexColor(PALE_BLUE))
-    c.setLineWidth(0.8)
-    c.line(1.15 * cm, y + 0.56 * cm, PAGE_WIDTH - 1.15 * cm, y + 0.56 * cm)
-    
-    c.setFont(FONT_NAME, 7.5)
-    c.setFillColor(colors.HexColor(LIGHT_BLUE))
-    c.drawCentredString(PAGE_WIDTH / 2, y + 0.26 * cm, _rtl(DEVELOPER_NAME))
-    c.drawCentredString(PAGE_WIDTH / 2, y - 0.04 * cm, _rtl(CONTACT_LINE))
-    
-    page_text = f"الصفحة {page_number} من {page_count}"
-    c.setFont(FONT_NAME, 8)
-    c.setFillColor(colors.HexColor(NAVY))
-    c.drawRightString(PAGE_WIDTH - 1.15 * cm, y + 0.05 * cm, _rtl(page_text))
-    c.restoreState()
-
-
-def _draw_page_template(c: canvas.Canvas, page_number: int, page_count: int):
-    _draw_header(c)
-    _draw_footer(c, page_number, page_count)
-
-
-def _section_header(title: str, styles: dict[str, ParagraphStyle]) -> Table:
-    table = Table(
-        [[_paragraph(title, styles["section_title"])]],
-        colWidths=[PAGE_WIDTH - 2.8 * cm],
+def _chart_theme(fig: go.Figure, title: str, height: int = 280) -> go.Figure:
+    fig.update_layout(
+        title={"text": title, "x": 0.5, "xanchor": "center", "font": {"size": 16, "color": NAVY}},
+        font={"family": "Arial", "size": 10, "color": NAVY},
+        paper_bgcolor=WHITE,
+        plot_bgcolor=WHITE,
+        margin={"l": 30, "r": 30, "t": 50, "b": 30},
+        height=height,
+        colorway=[NAVY, BLUE, LIGHT_BLUE, PALE_BLUE],
+        legend={"orientation": "h", "y": -0.16, "x": 0.5, "xanchor": "center"},
     )
-    table.setStyle(
+    fig.update_xaxes(gridcolor=PALE_BLUE, linecolor=LIGHT_BLUE, tickfont={"color": NAVY})
+    fig.update_yaxes(gridcolor=PALE_BLUE, linecolor=LIGHT_BLUE, tickfont={"color": NAVY})
+    return fig
+
+
+def _plotly_to_image(fig: go.Figure, width: int = 700, height: int = 250) -> Image | Table:
+    """تحويل المخطط إلى صورة باستخدام matplotlib (بدون kaleido)."""
+    # محاولة استخدام plotly's to_image أولاً
+    try:
+        png = fig.to_image(format="png", width=width, height=height, scale=1)
+        if png:
+            image = Image(BytesIO(png), width=18.0 * cm, height=(18.0 * cm) * height / width)
+            image.hAlign = "CENTER"
+            return image
+    except Exception as e:
+        print(f"⚠️ to_image فشل: {e}")
+    
+    # إذا فشل، نحول بيانات المخطط إلى matplotlib
+    try:
+        # استخراج بيانات المخطط
+        data = None
+        for trace in fig.data:
+            if hasattr(trace, 'x') and hasattr(trace, 'y'):
+                if trace.x and trace.y:
+                    data = pd.DataFrame({'x': trace.x, 'y': trace.y})
+                    break
+        
+        if data is not None:
+            img_bytes = _create_chart_image_matplotlib(
+                data, "bar", fig.layout.title.text if fig.layout.title else "",
+                x_col="x", y_col="y"
+            )
+            if img_bytes:
+                image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * height / width)
+                image.hAlign = "CENTER"
+                return image
+    except Exception as e:
+        print(f"⚠️ تحويل matplotlib فشل: {e}")
+    
+    # فشل نهائي
+    fallback = Table(
+        [[ar("⚠️ تعذر تحويل الرسم إلى صورة")]],
+        colWidths=[PAGE_WIDTH - 2.8 * cm],
+        rowHeights=[1.2 * cm],
+    )
+    fallback.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(NAVY)),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(BLUE)),
-                ("LEFTPADDING", (0, 0), (-1, -1), 12),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-                ("TOPPADDING", (0, 0), (-1, -1), 7),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
             ]
         )
     )
-    return table
+    return fallback
 
 
+def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
+    data = frame.head(8).copy()
+    # استخدام matplotlib مباشرة
+    img_bytes = _create_chart_image_matplotlib(data, "bar", title)
+    if img_bytes:
+        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    # فشل: نستخدم plotly
+    fig = go.Figure(go.Bar(x=data.get("الاسم", []), y=data.get("الحالي", []), marker_color=BLUE, text=data.get("الحالي", []), textposition="outside"))
+    fig = _chart_theme(fig, title)
+    return _plotly_to_image(fig)
+
+
+def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
+    data = frame.head(8).copy()
+    img_bytes = _create_chart_image_matplotlib(data, "pie", title)
+    if img_bytes:
+        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    fig = go.Figure(go.Pie(labels=data.get("الاسم", []), values=data.get("الحالي", []), hole=0.42, marker={"colors": [NAVY, BLUE, LIGHT_BLUE, PALE_BLUE]}))
+    fig = _chart_theme(fig, title)
+    return _plotly_to_image(fig)
+
+
+def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
+    data = _pareto_frame(frame).head(10)
+    img_bytes = _create_chart_image_matplotlib(data, "pareto", title, x_col="الاسم", y_col="الحالي", y2_col="النسبة_التراكمية")
+    if img_bytes:
+        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    fig = go.Figure()
+    fig.add_bar(x=data.get("الاسم", []), y=data.get("الحالي", []), name="المبيعات", marker_color=BLUE)
+    fig.add_scatter(x=data.get("الاسم", []), y=data.get("النسبة_التراكمية", []), name="النسبة التراكمية", yaxis="y2", mode="lines+markers", line={"color": NAVY, "width": 3})
+    fig.update_layout(yaxis2={"title": "النسبة التراكمية", "overlaying": "y", "side": "right", "range": [0, 100]})
+    fig = _chart_theme(fig, title)
+    return _plotly_to_image(fig)
+
+
+def _trend_chart(metrics: dict) -> Image | Table:
+    labels = ["السابق", "الحالي"]
+    values = [metrics.get("previous_total", 0), metrics.get("current_total", 0)]
+    data = pd.DataFrame({'x': labels, 'y': values})
+    img_bytes = _create_chart_image_matplotlib(data, "trend", "تحليل الاتجاه بين الفترة السابقة والحالية", x_col="x", y_col="y")
+    if img_bytes:
+        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    fig = go.Figure()
+    fig.add_scatter(x=labels, y=values, mode="lines+markers", line={"color": NAVY, "width": 3}, marker={"size": 10, "color": BLUE})
+    fig.add_bar(x=labels, y=values, marker_color=[LIGHT_BLUE, BLUE], opacity=0.55)
+    fig = _chart_theme(fig, "تحليل الاتجاه بين الفترة السابقة والحالية")
+    return _plotly_to_image(fig)
+
+
+def _pareto_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    if frame.empty:
+        return pd.DataFrame(columns=["الاسم", "الحالي", "النسبة", "النسبة_التراكمية"])
+    result = frame[["الاسم", "الحالي"]].copy().sort_values("الحالي", ascending=False)
+    total = result["الحالي"].sum()
+    result["النسبة"] = 0 if total == 0 else result["الحالي"] / total * 100
+    result["النسبة_التراكمية"] = result["النسبة"].cumsum()
+    return result
+
+
+def _metrics_frame(metrics: dict) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {"المؤشر": "إجمالي المبيعات الحالية", "القيمة": _money(metrics.get("current_total", 0))},
+            {"المؤشر": "إجمالي المبيعات السابقة", "القيمة": _money(metrics.get("previous_total", 0))},
+            {"المؤشر": "إجمالي الفرق", "القيمة": _money(metrics.get("difference", 0))},
+            {"المؤشر": "نسبة النمو", "القيمة": _percent(metrics.get("growth", 0))},
+            {"المؤشر": "عدد العملاء", "القيمة": metrics.get("customers_count", 0)},
+            {"المؤشر": "عدد المنتجات", "القيمة": metrics.get("products_count", 0)},
+            {"المؤشر": "عدد المناديب", "القيمة": metrics.get("representatives_count", 0)},
+            {"المؤشر": "عدد الفروع", "القيمة": metrics.get("branches_count", 0)},
+        ]
+    )
+
+
+# ============================================================
+# دوال بناء التقرير
+# ============================================================
 def _cover_logo() -> Image | Table:
     if os.path.exists(LOGO_PATH):
         try:
@@ -341,7 +500,7 @@ def _cover_logo() -> Image | Table:
         except Exception:
             pass
     
-    table = Table([[_rtl("العصعص")]], colWidths=[3.0 * cm], rowHeights=[3.0 * cm])
+    table = Table([[ar("العصعص")]], colWidths=[3.0 * cm], rowHeights=[3.0 * cm])
     table.setStyle(
         TableStyle(
             [
@@ -352,6 +511,51 @@ def _cover_logo() -> Image | Table:
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("BOX", (0, 0), (-1, -1), 1.0, colors.HexColor(BLUE)),
+            ]
+        )
+    )
+    return table
+
+
+def _format_frame(frame: pd.DataFrame, max_rows: int) -> pd.DataFrame:
+    shown = frame.head(max_rows).copy()
+    if shown.empty:
+        return pd.DataFrame({"البيان": ["لا توجد بيانات"]})
+    
+    for column in shown.columns:
+        if column in ["الحالي", "السابق", "الفرق", "القيمة"]:
+            shown[column] = shown[column].map(_money)
+        elif column == "النسبة":
+            shown[column] = shown[column].map(_percent)
+    return shown
+
+
+def _table_from_frame(frame: pd.DataFrame, max_rows: int = 16) -> Table:
+    shown = _format_frame(frame, max_rows)
+    data = [[ar(column) for column in shown.columns]]
+    data.extend([[ar(value) for value in row] for row in shown.astype(str).values.tolist()])
+    
+    available_width = PAGE_WIDTH - 2.8 * cm
+    col_count = max(len(shown.columns), 1)
+    col_widths = [available_width / col_count] * col_count
+    
+    table = Table(data, colWidths=col_widths, repeatRows=1, hAlign="CENTER")
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(NAVY)),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+                ("FONTSIZE", (0, 0), (-1, 0), 9),
+                ("FONTSIZE", (0, 1), (-1, -1), 8.5),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor(LIGHT_BLUE)),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(PALE_BLUE)]),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ]
         )
     )
@@ -396,203 +600,24 @@ def _metric_cards(metrics: dict, styles: dict[str, ParagraphStyle]) -> Table:
     return table
 
 
-def _format_frame(frame: pd.DataFrame, max_rows: int) -> pd.DataFrame:
-    shown = frame.head(max_rows).copy()
-    if shown.empty:
-        return pd.DataFrame({"البيان": ["لا توجد بيانات"]})
-    
-    for column in shown.columns:
-        if column in ["الحالي", "السابق", "الفرق", "القيمة"]:
-            shown[column] = shown[column].map(_money)
-        elif column == "النسبة":
-            shown[column] = shown[column].map(_percent)
-    return shown
-
-
-def _table_from_frame(frame: pd.DataFrame, max_rows: int = 16) -> Table:
-    shown = _format_frame(frame, max_rows)
-    data = [[_rtl(column) for column in shown.columns]]
-    data.extend([[_rtl(value) for value in row] for row in shown.astype(str).values.tolist()])
-    
-    available_width = PAGE_WIDTH - 2.8 * cm
-    col_count = max(len(shown.columns), 1)
-    col_widths = [available_width / col_count] * col_count
-    
-    table = Table(data, colWidths=col_widths, repeatRows=1, hAlign="CENTER")
+def _section_header(title: str, styles: dict[str, ParagraphStyle]) -> Table:
+    table = Table(
+        [[_paragraph(title, styles["section_title"])]],
+        colWidths=[PAGE_WIDTH - 2.8 * cm],
+    )
     table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(NAVY)),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
-                ("FONTSIZE", (0, 0), (-1, 0), 9),
-                ("FONTSIZE", (0, 1), (-1, -1), 8.5),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor(LIGHT_BLUE)),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor(PALE_BLUE)]),
-                ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(NAVY)),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(BLUE)),
+                ("LEFTPADDING", (0, 0), (-1, -1), 12),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                ("TOPPADDING", (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
             ]
         )
     )
     return table
-
-
-# ============================================================
-# دوال المخططات
-# ============================================================
-def _chart_theme(fig: go.Figure, title: str, height: int = 280) -> go.Figure:
-    fig.update_layout(
-        title={"text": title, "x": 0.5, "xanchor": "center", "font": {"size": 16, "color": NAVY}},
-        font={"family": "Arial", "size": 10, "color": NAVY},
-        paper_bgcolor=WHITE,
-        plot_bgcolor=WHITE,
-        margin={"l": 30, "r": 30, "t": 50, "b": 30},
-        height=height,
-        colorway=[NAVY, BLUE, LIGHT_BLUE, PALE_BLUE],
-        legend={"orientation": "h", "y": -0.16, "x": 0.5, "xanchor": "center"},
-    )
-    fig.update_xaxes(gridcolor=PALE_BLUE, linecolor=LIGHT_BLUE, tickfont={"color": NAVY})
-    fig.update_yaxes(gridcolor=PALE_BLUE, linecolor=LIGHT_BLUE, tickfont={"color": NAVY})
-    return fig
-
-
-def _plotly_image(fig: go.Figure, width: int = 700, height: int = 250) -> Image | Table:
-    """تحويل المخطط إلى صورة باستخدام matplotlib (بدون kaleido)."""
-    import matplotlib.pyplot as plt
-    import matplotlib
-    matplotlib.use('Agg')
-    from io import BytesIO
-    
-    try:
-        # تحويل Plotly إلى matplotlib
-        # نرسم المخطط مباشرة باستخدام matplotlib
-        fig_bytes = _fig_to_matplotlib(fig, width, height)
-        if fig_bytes:
-            image = Image(fig_bytes, width=18.0 * cm, height=(18.0 * cm) * height / width)
-            image.hAlign = "CENTER"
-            return image
-        else:
-            # فشل التحويل
-            return _create_fallback_table()
-    except Exception as e:
-        print(f"⚠️ خطأ في تحويل المخطط: {e}")
-        return _create_fallback_table()
-
-
-def _fig_to_matplotlib(fig: go.Figure, width: int = 700, height: int = 250) -> BytesIO | None:
-    """تحويل Plotly Figure إلى صورة matplotlib."""
-    import matplotlib.pyplot as plt
-    import matplotlib
-    matplotlib.use('Agg')
-    
-    try:
-        # استخدام plotly's to_image مع engine='auto' أولاً
-        try:
-            png = fig.to_image(format="png", width=width, height=height, scale=1, engine='auto')
-            if png:
-                return BytesIO(png)
-        except:
-            pass
-        
-        # إذا فشل، نستخدم matplotlib
-        import plotly.tools as tls
-        fig_matplotlib = tls.mpl_to_matplotlib(fig)
-        fig_matplotlib.set_size_inches(width/100, height/100)
-        
-        img_buffer = BytesIO()
-        fig_matplotlib.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
-        img_buffer.seek(0)
-        plt.close(fig_matplotlib)
-        return img_buffer
-        
-    except Exception as e:
-        print(f"⚠️ فشل تحويل المخطط إلى صورة: {e}")
-        return None
-
-
-def _create_fallback_table() -> Table:
-    """إنشاء جدول بديل في حالة فشل الصورة."""
-    fallback = Table(
-        [[ar("⚠️ تعذر تحويل الرسم إلى صورة")]],
-        colWidths=[PAGE_WIDTH - 2.8 * cm],
-        rowHeights=[1.2 * cm],
-    )
-    fallback.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
-                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
-            ]
-        )
-    )
-    return fallback
-
-
-def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = frame.head(8).copy()
-    fig = go.Figure(go.Bar(x=data.get("الاسم", []), y=data.get("الحالي", []), marker_color=BLUE, text=data.get("الحالي", []), textposition="outside"))
-    fig = _chart_theme(fig, title)
-    return _plotly_image(fig)
-
-
-def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = frame.head(8).copy()
-    fig = go.Figure(go.Pie(labels=data.get("الاسم", []), values=data.get("الحالي", []), hole=0.42, marker={"colors": [NAVY, BLUE, LIGHT_BLUE, PALE_BLUE]}))
-    fig = _chart_theme(fig, title)
-    return _plotly_image(fig)
-
-
-def _pareto_frame(frame: pd.DataFrame) -> pd.DataFrame:
-    if frame.empty:
-        return pd.DataFrame(columns=["الاسم", "الحالي", "النسبة", "النسبة_التراكمية"])
-    result = frame[["الاسم", "الحالي"]].copy().sort_values("الحالي", ascending=False)
-    total = result["الحالي"].sum()
-    result["النسبة"] = 0 if total == 0 else result["الحالي"] / total * 100
-    result["النسبة_التراكمية"] = result["النسبة"].cumsum()
-    return result
-
-
-def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = _pareto_frame(frame).head(10)
-    fig = go.Figure()
-    fig.add_bar(x=data.get("الاسم", []), y=data.get("الحالي", []), name="المبيعات", marker_color=BLUE)
-    fig.add_scatter(x=data.get("الاسم", []), y=data.get("النسبة_التراكمية", []), name="النسبة التراكمية", yaxis="y2", mode="lines+markers", line={"color": NAVY, "width": 3})
-    fig.update_layout(yaxis2={"title": "النسبة التراكمية", "overlaying": "y", "side": "right", "range": [0, 100]})
-    fig = _chart_theme(fig, title)
-    return _plotly_image(fig)
-
-
-def _trend_chart(metrics: dict) -> Image | Table:
-    labels = ["السابق", "الحالي"]
-    values = [metrics.get("previous_total", 0), metrics.get("current_total", 0)]
-    fig = go.Figure()
-    fig.add_scatter(x=labels, y=values, mode="lines+markers", line={"color": NAVY, "width": 3}, marker={"size": 10, "color": BLUE})
-    fig.add_bar(x=labels, y=values, marker_color=[LIGHT_BLUE, BLUE], opacity=0.55)
-    fig = _chart_theme(fig, "تحليل الاتجاه بين الفترة السابقة والحالية")
-    return _plotly_image(fig)
-
-
-def _metrics_frame(metrics: dict) -> pd.DataFrame:
-    return pd.DataFrame(
-        [
-            {"المؤشر": "إجمالي المبيعات الحالية", "القيمة": _money(metrics.get("current_total", 0))},
-            {"المؤشر": "إجمالي المبيعات السابقة", "القيمة": _money(metrics.get("previous_total", 0))},
-            {"المؤشر": "إجمالي الفرق", "القيمة": _money(metrics.get("difference", 0))},
-            {"المؤشر": "نسبة النمو", "القيمة": _percent(metrics.get("growth", 0))},
-            {"المؤشر": "عدد العملاء", "القيمة": metrics.get("customers_count", 0)},
-            {"المؤشر": "عدد المنتجات", "القيمة": metrics.get("products_count", 0)},
-            {"المؤشر": "عدد المناديب", "القيمة": metrics.get("representatives_count", 0)},
-            {"المؤشر": "عدد الفروع", "القيمة": metrics.get("branches_count", 0)},
-        ]
-    )
 
 
 def _add_section(story: list, title: str, styles: dict[str, ParagraphStyle]):
@@ -709,6 +734,108 @@ def _cover_info_table(
     ]
 
 
+# ============================================================
+# الفئة الرئيسية للـ Canvas
+# ============================================================
+class ProfessionalCanvas(canvas.Canvas):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._saved_pages = []
+
+    def showPage(self):
+        self._saved_pages.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        page_count = len(self._saved_pages)
+        for page in self._saved_pages:
+            self.__dict__.update(page)
+            _draw_page_template(self, self._pageNumber, page_count)
+            super().showPage()
+        super().save()
+
+
+# ============================================================
+# دوال الرأس والتذييل
+# ============================================================
+def _draw_logo(c: canvas.Canvas, x: float, y: float, size: float):
+    if os.path.exists(LOGO_PATH):
+        try:
+            c.drawImage(ImageReader(LOGO_PATH), x, y, width=size, height=size, preserveAspectRatio=True, mask="auto")
+            return
+        except Exception:
+            pass
+    
+    c.setFillColor(colors.HexColor(PALE_BLUE))
+    c.circle(x + size / 2, y + size / 2, size / 2, stroke=0, fill=1)
+    c.setFillColor(colors.HexColor(BLUE))
+    c.circle(x + size / 2, y + size / 2, size * 0.33, stroke=0, fill=1)
+    c.setFillColor(colors.white)
+    c.setFont(FONT_NAME, 8)
+    c.drawCentredString(x + size / 2, y + size / 2 - 3, ar("العصعص"))
+
+
+def _draw_header(c: canvas.Canvas):
+    c.saveState()
+    top = PAGE_HEIGHT - 1.0 * cm
+    
+    center_logo_path = "logo2.png"
+    logo_size = 0.8 * cm
+    
+    if os.path.exists(center_logo_path):
+        try:
+            c.drawImage(ImageReader(center_logo_path), (PAGE_WIDTH / 2) - (logo_size / 2), top - 0.8 * cm, width=logo_size, height=logo_size, preserveAspectRatio=True, mask="auto")
+        except Exception:
+            c.setFont(FONT_NAME, 8)
+            c.setFillColor(colors.HexColor(BLUE))
+            c.drawCentredString(PAGE_WIDTH / 2, top - 0.4 * cm, ar("هنا سنضع شعار شركتك"))
+    else:
+        c.setFont(FONT_NAME, 8)
+        c.setFillColor(colors.HexColor(BLUE))
+        c.drawCentredString(PAGE_WIDTH / 2, top - 0.4 * cm, ar("هنا سنضع شعار شركتك"))
+    
+    _draw_logo(c, 1.15 * cm, top - 0.72 * cm, 0.62 * cm)
+    
+    c.setFont(FONT_NAME, 15)
+    c.setFillColor(colors.HexColor(NAVY))
+    c.drawRightString(PAGE_WIDTH - 1.15 * cm, top - 0.2 * cm, ar("العصعص"))
+    
+    c.setStrokeColor(colors.HexColor(BLUE))
+    c.setLineWidth(1.1)
+    c.line(1.15 * cm, top - 0.92 * cm, PAGE_WIDTH - 1.15 * cm, top - 0.92 * cm)
+    c.setStrokeColor(colors.HexColor(PALE_BLUE))
+    c.setLineWidth(2.0)
+    c.line(1.15 * cm, top - 1.02 * cm, PAGE_WIDTH - 1.15 * cm, top - 1.02 * cm)
+    c.restoreState()
+
+
+def _draw_footer(c: canvas.Canvas, page_number: int, page_count: int):
+    c.saveState()
+    y = 1.0 * cm
+    c.setStrokeColor(colors.HexColor(PALE_BLUE))
+    c.setLineWidth(0.8)
+    c.line(1.15 * cm, y + 0.56 * cm, PAGE_WIDTH - 1.15 * cm, y + 0.56 * cm)
+    
+    c.setFont(FONT_NAME, 7.5)
+    c.setFillColor(colors.HexColor(LIGHT_BLUE))
+    c.drawCentredString(PAGE_WIDTH / 2, y + 0.26 * cm, ar(DEVELOPER_NAME))
+    c.drawCentredString(PAGE_WIDTH / 2, y - 0.04 * cm, ar(CONTACT_LINE))
+    
+    page_text = f"الصفحة {page_number} من {page_count}"
+    c.setFont(FONT_NAME, 8)
+    c.setFillColor(colors.HexColor(NAVY))
+    c.drawRightString(PAGE_WIDTH - 1.15 * cm, y + 0.05 * cm, ar(page_text))
+    c.restoreState()
+
+
+def _draw_page_template(c: canvas.Canvas, page_number: int, page_count: int):
+    _draw_header(c)
+    _draw_footer(c, page_number, page_count)
+
+
+# ============================================================
+# الدالة الرئيسية للتصدير
+# ============================================================
 def export_to_pdf(
     metrics: dict,
     customers: pd.DataFrame,
