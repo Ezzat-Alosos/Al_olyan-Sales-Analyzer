@@ -60,126 +60,122 @@ def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
 
 
 def _create_chart_image(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي", y2_col: str = None) -> BytesIO:
-    """إنشاء صورة للشارت باستخدام Plotly."""
+    """إنشاء صورة للشارت باستخدام matplotlib (بدون kaleido)."""
+    import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.use('Agg')  # للاستخدام في البيئات السحابية
+    import numpy as np
+    
     data = df.head(10).copy()
     if data.empty or len(data) < 2:
         return None
     
-    fig = None
-    
-    if chart_type == "bar":
-        fig = go.Figure(go.Bar(
-            x=data[x_col].astype(str), 
-            y=data[y_col],
-            marker_color="#2563eb",
-            text=data[y_col],
-            textposition="outside"
-        ))
-    elif chart_type == "pie":
-        fig = go.Figure(go.Pie(
-            labels=data[x_col].astype(str),
-            values=data[y_col],
-            hole=0.35,
-            marker=dict(colors=["#1e3a8a", "#2563eb", "#60a5fa", "#93c5fd", "#bfdbfe"])
-        ))
-    elif chart_type == "pareto":
-        fig = go.Figure()
-        fig.add_bar(
-            x=data[x_col].astype(str),
-            y=data[y_col],
-            name="المبيعات",
-            marker_color="#2563eb",
-            text=data[y_col],
-            textposition="outside"
-        )
-        if y2_col and y2_col in data.columns:
-            fig.add_scatter(
-                x=data[x_col].astype(str),
-                y=data[y2_col],
-                name="النسبة التراكمية",
-                mode="lines+markers",
-                line=dict(color="#dc2626", width=2),
-                marker=dict(size=8, color="#dc2626"),
-                yaxis="y2"
-            )
-            fig.add_hline(y=80, line_dash="dash", line_color="#dc2626", annotation_text="80%")
-            fig.update_layout(
-                yaxis2=dict(
-                    title="النسبة التراكمية %",
-                    overlaying="y",
-                    side="right",
-                    range=[0, 110]
-                )
-            )
-    elif chart_type == "trend":
-        fig = go.Figure()
-        fig.add_bar(
-            x=data[x_col].astype(str),
-            y=data[y_col],
-            name="المبيعات",
-            marker_color="#2563eb",
-            text=data[y_col],
-            textposition="outside"
-        )
-        fig.add_scatter(
-            x=data[x_col].astype(str),
-            y=data[y_col],
-            name="خط الاتجاه",
-            mode="lines+markers",
-            line=dict(color="#dc2626", width=3),
-            marker=dict(size=10, color="#dc2626")
-        )
-        fig.update_layout(
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="center",
-                x=0.5
-            )
-        )
-    else:
+    # تنظيف البيانات
+    data = data.dropna(subset=[x_col, y_col])
+    if data.empty:
         return None
     
-    fig.update_layout(
-        title={"text": title, "x": 0.5, "xanchor": "center", "font": {"size": 10, "color": "#1e3a8a"}},
-        font={"size": 8, "color": "#1e3a8a"},
-        paper_bgcolor="white",
-        plot_bgcolor="white",
-        margin={"l": 20, "r": 20, "t": 30, "b": 20},
-        height=200,
-        width=300,
-        colorway=["#1e3a8a", "#2563eb", "#60a5fa", "#93c5fd"]
-    )
+    # إنشاء الرسم
+    fig, ax = plt.subplots(figsize=(6, 4))
     
-    if chart_type in ["bar", "trend"]:
-        fig.update_xaxes(gridcolor="#bfdbfe", linecolor="#93c5fd")
-        fig.update_yaxes(gridcolor="#bfdbfe", linecolor="#93c5fd")
-    
-    # ============================================================
-    # محاولة تحويل الصورة بطرق مختلفة
-    # ============================================================
-    try:
-        # الطريقة 1: استخدام kaleido مباشرة
-        img_bytes = pio.to_image(fig, format="png", scale=1.0, engine="kaleido")
-        return BytesIO(img_bytes)
-    except Exception as e1:
-        print(f"⚠️ Kaleido failed: {e1}")
+    if chart_type == "bar":
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        colors = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe']
+        bars = ax.bar(x, y, color=colors[:len(x)])
+        ax.set_ylabel('المبيعات')
+        ax.set_title(title, fontsize=12)
+        # إضافة القيم فوق الأعمدة
+        for bar, val in zip(bars, y):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
+                   f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
+        plt.xticks(rotation=45, ha='right')
         
-        try:
-            # الطريقة 2: استخدام engine="auto"
-            img_bytes = pio.to_image(fig, format="png", scale=1.0, engine="auto")
-            return BytesIO(img_bytes)
-        except Exception as e2:
-            print(f"⚠️ Auto engine failed: {e2}")
-            
-            try:
-                # الطريقة 3: استخدام scale أصغر
-                img_bytes = pio.to_image(fig, format="png", scale=0.8)
-                return BytesIO(img_bytes)
-            except Exception as e3:
-                print(f"❌ جميع محاولات تحويل الصورة فشلت: {e3}")
-                return None
+    elif chart_type == "pie":
+        data = data.sort_values(y_col, ascending=False)
+        labels = data[x_col].astype(str).tolist()
+        values = data[y_col].tolist()
+        # تجاهل القيم الصغيرة جداً
+        total = sum(values)
+        if total > 0:
+            colors = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff']
+            wedges, texts, autotexts = ax.pie(
+                values, 
+                labels=labels, 
+                autopct=lambda pct: f'{pct:.1f}%' if pct > 2 else '',
+                colors=colors[:len(labels)],
+                startangle=90,
+                pctdistance=0.85
+            )
+            ax.set_title(title, fontsize=12)
+            # تكبير النصوص
+            for text in texts:
+                text.set_fontsize(8)
+            for autotext in autotexts:
+                autotext.set_fontsize(8)
+                autotext.set_color('white')
+        
+    elif chart_type == "pareto":
+        data = data.sort_values(y_col, ascending=False)
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        
+        # أعمدة
+        colors = ['#2563eb'] * len(x)
+        bars = ax.bar(x, y, color=colors, alpha=0.7)
+        ax.set_ylabel('المبيعات', color='blue')
+        ax.tick_params(axis='y', labelcolor='blue')
+        
+        # خط النسبة التراكمية
+        total = sum(y)
+        cumsum = 0
+        cum_percentages = []
+        for val in y:
+            cumsum += val
+            cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
+        
+        ax2 = ax.twinx()
+        ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=6)
+        ax2.axhline(y=80, color='red', linestyle='--', alpha=0.5)
+        ax2.text(len(x)-1, 82, '80%', color='red', fontsize=9, ha='right')
+        ax2.set_ylabel('النسبة التراكمية %', color='red')
+        ax2.tick_params(axis='y', labelcolor='red')
+        ax2.set_ylim(0, 105)
+        
+        ax.set_title(title, fontsize=12)
+        plt.xticks(rotation=45, ha='right')
+        
+    elif chart_type == "trend":
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        
+        # أعمدة
+        ax.bar(x, y, color='#2563eb', alpha=0.6, label='المبيعات')
+        # خط الاتجاه
+        ax.plot(x, y, color='red', marker='o', linewidth=2, markersize=8, label='خط الاتجاه')
+        ax.set_ylabel('المبيعات')
+        ax.set_title(title, fontsize=12)
+        ax.legend()
+        plt.xticks(rotation=45, ha='right')
+    
+    else:
+        plt.close()
+        return None
+    
+    # تحويل إلى صورة
+    plt.tight_layout()
+    
+    try:
+        # حفظ الصورة في BytesIO
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+        img_buffer.seek(0)
+        plt.close()
+        return img_buffer
+    except Exception as e:
+        print(f"❌ خطأ في حفظ الصورة: {e}")
+        plt.close()
+        return None
 
 
 def _add_image_to_sheet(worksheet, img_bytes: BytesIO, cell_position: str, width: int = 300, height: int = 200):
