@@ -6,6 +6,17 @@ from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 import time
+import os
+
+# محاولة تعيين محرك kaleido
+try:
+    import kaleido
+    pio.kaleido.scope.default_format = "png"
+    print("✅ Kaleido loaded successfully")
+except ImportError:
+    print("⚠️ Kaleido not found, trying fallback")
+except Exception as e:
+    print(f"⚠️ Kaleido error: {e}")
 
 HEADER_FILL = PatternFill("solid", fgColor="1E3A5F")
 HEADER_FONT = Font(color="FFFFFF", bold=True)
@@ -145,19 +156,30 @@ def _create_chart_image(df: pd.DataFrame, chart_type: str, title: str, x_col: st
         fig.update_xaxes(gridcolor="#bfdbfe", linecolor="#93c5fd")
         fig.update_yaxes(gridcolor="#bfdbfe", linecolor="#93c5fd")
     
+    # ============================================================
+    # محاولة تحويل الصورة بطرق مختلفة
+    # ============================================================
     try:
-        # تجربة scale=1.5 أولاً
-        img_bytes = pio.to_image(fig, format="png", scale=1.5)
+        # الطريقة 1: استخدام kaleido مباشرة
+        img_bytes = pio.to_image(fig, format="png", scale=1.0, engine="kaleido")
         return BytesIO(img_bytes)
     except Exception as e1:
-        print(f"⚠️ فشل التحويل بـ scale=1.5: {e1}")
+        print(f"⚠️ Kaleido failed: {e1}")
+        
         try:
-            # محاولة ثانية بـ scale=1
-            img_bytes = pio.to_image(fig, format="png", scale=1)
+            # الطريقة 2: استخدام engine="auto"
+            img_bytes = pio.to_image(fig, format="png", scale=1.0, engine="auto")
             return BytesIO(img_bytes)
         except Exception as e2:
-            print(f"❌ فشل تحويل الصورة نهائياً: {e2}")
-            return None
+            print(f"⚠️ Auto engine failed: {e2}")
+            
+            try:
+                # الطريقة 3: استخدام scale أصغر
+                img_bytes = pio.to_image(fig, format="png", scale=0.8)
+                return BytesIO(img_bytes)
+            except Exception as e3:
+                print(f"❌ جميع محاولات تحويل الصورة فشلت: {e3}")
+                return None
 
 
 def _add_image_to_sheet(worksheet, img_bytes: BytesIO, cell_position: str, width: int = 300, height: int = 200):
