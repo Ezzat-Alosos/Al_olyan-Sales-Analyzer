@@ -146,16 +146,21 @@ def _create_chart_image(df: pd.DataFrame, chart_type: str, title: str, x_col: st
         fig.update_yaxes(gridcolor="#bfdbfe", linecolor="#93c5fd")
     
     try:
-        # استخدام format="png" مع scale=1.5 للحصول على جودة جيدة
+        # تجربة scale=1.5 أولاً
         img_bytes = pio.to_image(fig, format="png", scale=1.5)
         return BytesIO(img_bytes)
-    except Exception as e:
-        print(f"❌ خطأ في إنشاء الصورة: {e}")
-        return None
+    except Exception as e1:
+        print(f"⚠️ فشل التحويل بـ scale=1.5: {e1}")
+        try:
+            # محاولة ثانية بـ scale=1
+            img_bytes = pio.to_image(fig, format="png", scale=1)
+            return BytesIO(img_bytes)
+        except Exception as e2:
+            print(f"❌ فشل تحويل الصورة نهائياً: {e2}")
+            return None
 
 
 def _add_image_to_sheet(worksheet, img_bytes: BytesIO, cell_position: str, width: int = 300, height: int = 200):
-    """إضافة صورة إلى الورقة."""
     try:
         img_bytes.seek(0)
         img = XLImage(img_bytes)
