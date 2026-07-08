@@ -60,7 +60,6 @@ LOGO_PATH = "logo.png"
 # دالة تسجيل الخط العربي
 # ============================================================
 def _register_arabic_font() -> str:
-    """تسجيل الخط العربي"""
     font_path = os.path.join(os.path.dirname(__file__), 'arial.ttf')
     
     if os.path.exists(font_path):
@@ -83,19 +82,16 @@ def _register_arabic_font() -> str:
                 continue
     
     print("❌ لم يتم العثور على خط عربي!")
-    print("💡 يرجى وضع ملف arial.ttf في مجلد المشروع")
     return "Helvetica"
 
 
-# تسجيل الخط
 FONT_NAME = _register_arabic_font()
 
 
 # ============================================================
-# دالة معالجة النص العربي (ar)
+# دالة معالجة النص العربي
 # ============================================================
 def ar(text) -> str:
-    """تحويل النص إلى RTL مع تشكيل مناسب"""
     if text is None:
         return ""
     if arabic_reshaper and get_display:
@@ -108,7 +104,7 @@ def ar(text) -> str:
 
 
 # ============================================================
-# دوال التنسيق الأخرى
+# دوال التنسيق
 # ============================================================
 def _money(value) -> str:
     try:
@@ -213,254 +209,46 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 
 def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
-    """إنشاء فقرة باستخدام دالة ar"""
     return Paragraph(ar(text), style)
 
 
 # ============================================================
-# دوال الرسم (matplotlib) - بديل عن kaleido
+# دوال المخططات (تعطيل مؤقت)
 # ============================================================
-def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي", y2_col: str = None) -> BytesIO | None:
-    """إنشاء صورة للشارت باستخدام matplotlib (بدون kaleido)."""
-    try:
-        import matplotlib.pyplot as plt
-        import matplotlib
-        matplotlib.use('Agg')
-        import numpy as np
-    except ImportError:
-        print("❌ matplotlib غير مثبت")
-        return None
-    
-    data = df.head(10).copy()
-    if data.empty or len(data) < 2:
-        return None
-    
-    data = data.dropna(subset=[x_col, y_col])
-    if data.empty:
-        return None
-    
-    # إنشاء الرسم
-    fig, ax = plt.subplots(figsize=(6, 4))
-    
-    if chart_type == "bar":
-        x = data[x_col].astype(str).tolist()
-        y = data[y_col].tolist()
-        colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe']
-        bars = ax.bar(x, y, color=colors_list[:len(x)])
-        ax.set_ylabel('المبيعات')
-        ax.set_title(title, fontsize=12)
-        for bar, val in zip(bars, y):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
-                   f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
-        plt.xticks(rotation=45, ha='right')
-        
-    elif chart_type == "pie":
-        data = data.sort_values(y_col, ascending=False)
-        labels = data[x_col].astype(str).tolist()
-        values = data[y_col].tolist()
-        total = sum(values)
-        if total > 0:
-            colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff']
-            wedges, texts, autotexts = ax.pie(
-                values, 
-                labels=labels, 
-                autopct=lambda pct: f'{pct:.1f}%' if pct > 2 else '',
-                colors=colors_list[:len(labels)],
-                startangle=90,
-                pctdistance=0.85
-            )
-            ax.set_title(title, fontsize=12)
-            for text in texts:
-                text.set_fontsize(8)
-            for autotext in autotexts:
-                autotext.set_fontsize(8)
-                autotext.set_color('white')
-        
-    elif chart_type == "pareto":
-        data = data.sort_values(y_col, ascending=False)
-        x = data[x_col].astype(str).tolist()
-        y = data[y_col].tolist()
-        
-        colors_list = ['#2563eb'] * len(x)
-        bars = ax.bar(x, y, color=colors_list, alpha=0.7)
-        ax.set_ylabel('المبيعات', color='blue')
-        ax.tick_params(axis='y', labelcolor='blue')
-        
-        total = sum(y)
-        cumsum = 0
-        cum_percentages = []
-        for val in y:
-            cumsum += val
-            cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
-        
-        ax2 = ax.twinx()
-        ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=6)
-        ax2.axhline(y=80, color='red', linestyle='--', alpha=0.5)
-        ax2.text(len(x)-1, 82, '80%', color='red', fontsize=9, ha='right')
-        ax2.set_ylabel('النسبة التراكمية %', color='red')
-        ax2.tick_params(axis='y', labelcolor='red')
-        ax2.set_ylim(0, 105)
-        ax.set_title(title, fontsize=12)
-        plt.xticks(rotation=45, ha='right')
-        
-    elif chart_type == "trend":
-        x = data[x_col].astype(str).tolist()
-        y = data[y_col].tolist()
-        ax.bar(x, y, color='#2563eb', alpha=0.6, label='المبيعات')
-        ax.plot(x, y, color='red', marker='o', linewidth=2, markersize=8, label='خط الاتجاه')
-        ax.set_ylabel('المبيعات')
-        ax.set_title(title, fontsize=12)
-        ax.legend()
-        plt.xticks(rotation=45, ha='right')
-    
-    else:
-        plt.close()
-        return None
-    
-    plt.tight_layout()
-    
-    try:
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
-        img_buffer.seek(0)
-        plt.close()
-        return img_buffer
-    except Exception as e:
-        print(f"❌ خطأ في حفظ الصورة: {e}")
-        plt.close()
-        return None
-
-
-def _chart_theme(fig: go.Figure, title: str, height: int = 280) -> go.Figure:
-    fig.update_layout(
-        title={"text": title, "x": 0.5, "xanchor": "center", "font": {"size": 16, "color": NAVY}},
-        font={"family": "Arial", "size": 10, "color": NAVY},
-        paper_bgcolor=WHITE,
-        plot_bgcolor=WHITE,
-        margin={"l": 30, "r": 30, "t": 50, "b": 30},
-        height=height,
-        colorway=[NAVY, BLUE, LIGHT_BLUE, PALE_BLUE],
-        legend={"orientation": "h", "y": -0.16, "x": 0.5, "xanchor": "center"},
-    )
-    fig.update_xaxes(gridcolor=PALE_BLUE, linecolor=LIGHT_BLUE, tickfont={"color": NAVY})
-    fig.update_yaxes(gridcolor=PALE_BLUE, linecolor=LIGHT_BLUE, tickfont={"color": NAVY})
-    return fig
-
-
-def _plotly_to_image(fig: go.Figure, width: int = 700, height: int = 250) -> Image | Table:
-    """تحويل المخطط إلى صورة باستخدام matplotlib (بدون kaleido)."""
-    # محاولة استخدام plotly's to_image أولاً
-    try:
-        png = fig.to_image(format="png", width=width, height=height, scale=1)
-        if png:
-            image = Image(BytesIO(png), width=18.0 * cm, height=(18.0 * cm) * height / width)
-            image.hAlign = "CENTER"
-            return image
-    except Exception as e:
-        print(f"⚠️ to_image فشل: {e}")
-    
-    # إذا فشل، نحول بيانات المخطط إلى matplotlib
-    try:
-        # استخراج بيانات المخطط
-        data = None
-        for trace in fig.data:
-            if hasattr(trace, 'x') and hasattr(trace, 'y'):
-                if trace.x and trace.y:
-                    data = pd.DataFrame({'x': trace.x, 'y': trace.y})
-                    break
-        
-        if data is not None:
-            img_bytes = _create_chart_image_matplotlib(
-                data, "bar", fig.layout.title.text if fig.layout.title else "",
-                x_col="x", y_col="y"
-            )
-            if img_bytes:
-                image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * height / width)
-                image.hAlign = "CENTER"
-                return image
-    except Exception as e:
-        print(f"⚠️ تحويل matplotlib فشل: {e}")
-    
-    # فشل نهائي
-    fallback = Table(
-        [[ar("⚠️ تعذر تحويل الرسم إلى صورة")]],
+def _bar_chart(frame: pd.DataFrame, title: str) -> Table:
+    """مخطط شريطي - معطل مؤقتاً"""
+    return Table(
+        [[ar(f"⚠️ مخطط {title} - قيد التطوير")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
         rowHeights=[1.2 * cm],
     )
-    fallback.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
-                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
-            ]
-        )
+
+
+def _pie_chart(frame: pd.DataFrame, title: str) -> Table:
+    """مخطط دائري - معطل مؤقتاً"""
+    return Table(
+        [[ar(f"⚠️ مخطط {title} - قيد التطوير")]],
+        colWidths=[PAGE_WIDTH - 2.8 * cm],
+        rowHeights=[1.2 * cm],
     )
-    return fallback
 
 
-def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = frame.head(8).copy()
-    # استخدام matplotlib مباشرة
-    img_bytes = _create_chart_image_matplotlib(data, "bar", title)
-    if img_bytes:
-        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
-        image.hAlign = "CENTER"
-        return image
-    
-    # فشل: نستخدم plotly
-    fig = go.Figure(go.Bar(x=data.get("الاسم", []), y=data.get("الحالي", []), marker_color=BLUE, text=data.get("الحالي", []), textposition="outside"))
-    fig = _chart_theme(fig, title)
-    return _plotly_to_image(fig)
+def _pareto_chart(frame: pd.DataFrame, title: str) -> Table:
+    """مخطط باريتو - معطل مؤقتاً"""
+    return Table(
+        [[ar(f"⚠️ مخطط {title} - قيد التطوير")]],
+        colWidths=[PAGE_WIDTH - 2.8 * cm],
+        rowHeights=[1.2 * cm],
+    )
 
 
-def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = frame.head(8).copy()
-    img_bytes = _create_chart_image_matplotlib(data, "pie", title)
-    if img_bytes:
-        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
-        image.hAlign = "CENTER"
-        return image
-    
-    fig = go.Figure(go.Pie(labels=data.get("الاسم", []), values=data.get("الحالي", []), hole=0.42, marker={"colors": [NAVY, BLUE, LIGHT_BLUE, PALE_BLUE]}))
-    fig = _chart_theme(fig, title)
-    return _plotly_to_image(fig)
-
-
-def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = _pareto_frame(frame).head(10)
-    img_bytes = _create_chart_image_matplotlib(data, "pareto", title, x_col="الاسم", y_col="الحالي", y2_col="النسبة_التراكمية")
-    if img_bytes:
-        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
-        image.hAlign = "CENTER"
-        return image
-    
-    fig = go.Figure()
-    fig.add_bar(x=data.get("الاسم", []), y=data.get("الحالي", []), name="المبيعات", marker_color=BLUE)
-    fig.add_scatter(x=data.get("الاسم", []), y=data.get("النسبة_التراكمية", []), name="النسبة التراكمية", yaxis="y2", mode="lines+markers", line={"color": NAVY, "width": 3})
-    fig.update_layout(yaxis2={"title": "النسبة التراكمية", "overlaying": "y", "side": "right", "range": [0, 100]})
-    fig = _chart_theme(fig, title)
-    return _plotly_to_image(fig)
-
-
-def _trend_chart(metrics: dict) -> Image | Table:
-    labels = ["السابق", "الحالي"]
-    values = [metrics.get("previous_total", 0), metrics.get("current_total", 0)]
-    data = pd.DataFrame({'x': labels, 'y': values})
-    img_bytes = _create_chart_image_matplotlib(data, "trend", "تحليل الاتجاه بين الفترة السابقة والحالية", x_col="x", y_col="y")
-    if img_bytes:
-        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
-        image.hAlign = "CENTER"
-        return image
-    
-    fig = go.Figure()
-    fig.add_scatter(x=labels, y=values, mode="lines+markers", line={"color": NAVY, "width": 3}, marker={"size": 10, "color": BLUE})
-    fig.add_bar(x=labels, y=values, marker_color=[LIGHT_BLUE, BLUE], opacity=0.55)
-    fig = _chart_theme(fig, "تحليل الاتجاه بين الفترة السابقة والحالية")
-    return _plotly_to_image(fig)
+def _trend_chart(metrics: dict) -> Table:
+    """مخطط الاتجاهات - معطل مؤقتاً"""
+    return Table(
+        [[ar("⚠️ مخطط الاتجاهات - قيد التطوير")]],
+        colWidths=[PAGE_WIDTH - 2.8 * cm],
+        rowHeights=[1.2 * cm],
+    )
 
 
 def _pareto_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -848,7 +636,6 @@ def export_to_pdf(
     report_period,
     records_count,
 ) -> BytesIO:
-    """إنشاء تقرير PDF تنفيذي."""
     start = time.time()
     output = BytesIO()
     document = SimpleDocTemplate(
