@@ -36,6 +36,7 @@ def load_and_process_data(file):
     print(f"⏱️ [cache] تحميل ومعالجة الملف: {time.time() - start:.2f} ثانية")
     return df, years
 
+
 @st.cache_resource(ttl=3600)
 def compute_all_results_cached(df, current_year, previous_year, comparison_type, period_value):
     start = time.time()
@@ -50,6 +51,7 @@ def compute_all_results_cached(df, current_year, previous_year, comparison_type,
     print(f"⏱️ [cache] حساب النتائج: {time.time() - start:.2f} ثانية")
     return all_results, metrics, insights
 
+
 @st.cache_resource(ttl=3600)
 def compute_pareto_cached(df, current_year, comparison_type, period_value):
     start = time.time()
@@ -60,6 +62,7 @@ def compute_pareto_cached(df, current_year, comparison_type, period_value):
     print(f"⏱️ [cache] حساب باريتو: {time.time() - start:.2f} ثانية")
     return result
 
+
 @st.cache_resource(ttl=3600)
 def compute_trends_cached(df):
     start = time.time()
@@ -67,6 +70,18 @@ def compute_trends_cached(df):
     yearly = trend_yearly(df)
     print(f"⏱️ [cache] حساب الاتجاهات: {time.time() - start:.2f} ثانية")
     return monthly, yearly
+
+
+@st.cache_resource(ttl=3600)
+def get_export_data(df, current_year, comparison_type, period_value):
+    """جلب بيانات باريتو والاتجاهات للتصدير"""
+    start = time.time()
+    pareto_customers = pareto_analysis(df, "الاسم", current_year, comparison_type, period_value)
+    pareto_products = pareto_analysis(df, "الصنف", current_year, comparison_type, period_value)
+    trend_data = trend_monthly(df)
+    print(f"⏱️ [cache] بيانات التصدير: {time.time() - start:.2f} ثانية")
+    return pareto_customers, pareto_products, trend_data
+
 
 # ============================================================
 # دوال العرض (بدون Treemap)
@@ -79,7 +94,7 @@ def _render_tab(title: str, frame, chart_title: str, key: str):
         st.plotly_chart(chart_bar(frame.head(10), f"{chart_title} - Bar Chart"), use_container_width=True)
     with col2:
         st.plotly_chart(chart_pie(frame.head(10), f"{chart_title} - Pie Chart"), use_container_width=True)
-    # Treemap تم إزالته نهائياً
+
 
 def _render_customer_analysis(customers):
     st.subheader("تحليل العملاء")
@@ -99,6 +114,7 @@ def _render_customer_analysis(customers):
         st.dataframe(segments["growing"], use_container_width=True, hide_index=True)
     with segment_tabs[3]:
         st.dataframe(segments["declining"], use_container_width=True, hide_index=True)
+
 
 # ============================================================
 # الرئيسية
@@ -211,15 +227,6 @@ def main():
     # ============================================================
     # حساب بيانات باريتو والاتجاهات للتصدير
     # ============================================================
-    @st.cache_resource(ttl=3600)
-    def get_export_data(df, current_year, comparison_type, period_value):
-        start = time.time()
-        pareto_customers = pareto_analysis(df, "الاسم", current_year, comparison_type, period_value)
-        pareto_products = pareto_analysis(df, "الصنف", current_year, comparison_type, period_value)
-        trend_data = trend_monthly(df)
-        print(f"⏱️ [cache] بيانات التصدير: {time.time() - start:.2f} ثانية")
-        return pareto_customers, pareto_products, trend_data
-
     pareto_customers, pareto_products, trend_data = get_export_data(df, current_year, comparison_type, period_value)
 
     # تصدير Excel
@@ -245,39 +252,25 @@ def main():
     report_description = ""
     records_count = len(df)
 
-    if "pdf_bytes" not in st.session_state:
-        st.session_state.pdf_bytes = None
+    pdf_file = export_to_pdf(
+        metrics,
+        customers,
+        products,
+        representatives,
+        branches,
+        insights,
+        report_description,
+        report_type,
+        report_period,
+        records_count,
+    )
 
-    if export_col2.button("📄 إنشاء PDF", key="pdf_export_btn"):
-        with st.spinner("⏳ جاري إنشاء ملف PDF..."):
-            start_pdf = time.time()
-            pdf_file = export_to_pdf(
-                metrics,
-                customers,
-                products,
-                representatives,
-                branches,
-                insights,
-                report_description,
-                report_type,
-                report_period,
-                records_count,
-            )
-            st.session_state.pdf_bytes = pdf_file.getvalue()
-            print(f"⏱️ [main] إنشاء PDF: {time.time() - start_pdf:.2f} ثانية")
-            st.success(f"✅ تم إنشاء PDF في {time.time() - start_pdf:.2f} ثانية!")
-
-    if st.session_state.pdf_bytes is not None:
-        export_col2.download_button(
-            label="📥 تحميل PDF",
-            data=st.session_state.pdf_bytes,
-            file_name="al_asa_sales_analysis.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-        )
-
-
-
+    export_col2.download_button(
+        "📄 تصدير PDF",
+        pdf_file,
+        file_name="al_asa_sales_analysis.pdf",
+        mime="application/pdf",
+    )
 
     # ============================================================
     # عرض لوحة المؤشرات والوحدات
