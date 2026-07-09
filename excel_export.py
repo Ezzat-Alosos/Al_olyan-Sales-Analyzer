@@ -50,43 +50,42 @@ def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
     _autosize_and_style(writer.book[sheet_name])
 
 
-def _shorten_text(text, max_len=12):
+def _shorten_text(text, max_len=10):
     """تقصير النصوص الطويلة"""
     text = str(text)
     if len(text) > max_len:
-        return text[:max_len] + ".."
+        return text[:max_len] + "."
     return text
 
 
 def _create_bar_chart(data, x_col, y_col, title):
-    """إنشاء مخطط شريطي محسّن"""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    """إنشاء مخطط شريطي - المبالغ بشكل طولي (عمودي)"""
+    fig, ax = plt.subplots(figsize=(7, 4.5))
     
-    # تقصير الأسماء
-    x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
+    x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
     y = data[y_col].tolist()
     
-    # ألوان متدرجة
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
     bars = ax.bar(x, y, color=colors)
     
-    # إضافة القيم
     max_y = max(y) if y else 1
     for bar, val in zip(bars, y):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max_y * 0.01,
-               f'{val:,.0f}', ha='center', va='bottom', fontsize=7, rotation=0)
+        ax.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height() + max_y * 0.02,
+            f'{val:,.0f}',
+            ha='center',
+            va='bottom',
+            fontsize=7,
+            rotation=0
+        )
     
     ax.set_ylabel('المبيعات', fontsize=9)
-    ax.set_title(title, fontsize=11, fontweight='bold')
-    
-    # تدوير النصوص 45 درجة لتجنب التداخل
+    ax.set_title(title, fontsize=11)
     plt.xticks(rotation=45, ha='right', fontsize=7)
-    plt.yticks(fontsize=8)
-    
-    # تنسيق محور Y
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout()
+    plt.tight_layout(pad=0.5)
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -96,11 +95,11 @@ def _create_bar_chart(data, x_col, y_col, title):
 
 
 def _create_pie_chart(data, x_col, y_col, title):
-    """إنشاء مخطط دائري محسّن"""
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    """إنشاء مخطط دائري - دائري وليس بيضاوي"""
+    fig, ax = plt.subplots(figsize=(6, 5))
     
     data = data.sort_values(y_col, ascending=False)
-    labels = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 15)).tolist()
+    labels = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
     values = data[y_col].tolist()
     total = sum(values)
     
@@ -111,23 +110,26 @@ def _create_pie_chart(data, x_col, y_col, title):
             return f'{pct:.1f}%' if pct > 3 else ''
         
         wedges, texts, autotexts = ax.pie(
-            values, 
-            labels=labels, 
+            values,
+            labels=labels,
             autopct=autopct_format,
             colors=colors,
             startangle=90,
             pctdistance=0.75,
-            textprops={'fontsize': 7}
+            textprops={'fontsize': 7},
+            wedgeprops={'edgecolor': 'white', 'linewidth': 0.5}
         )
-        ax.set_title(title, fontsize=11, fontweight='bold')
+        ax.set_title(title, fontsize=11)
         
         for text in texts:
             text.set_fontsize(7)
         for autotext in autotexts:
             autotext.set_fontsize(7)
             autotext.set_color('white')
+        
+        ax.set_aspect('equal')
     
-    plt.tight_layout()
+    plt.tight_layout(pad=0.3)
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -137,20 +139,18 @@ def _create_pie_chart(data, x_col, y_col, title):
 
 
 def _create_pareto_chart(data, title):
-    """إنشاء مخطط باريتو محسّن"""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    """إنشاء مخطط باريتو"""
+    fig, ax = plt.subplots(figsize=(7, 4.5))
     
     data = data.sort_values('الحالي', ascending=False)
-    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
+    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 8)).tolist()
     y = data['الحالي'].tolist()
     
-    # أعمدة
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
     bars = ax.bar(x, y, color=colors, alpha=0.8)
     ax.set_ylabel('المبيعات', color='blue', fontsize=9)
     ax.tick_params(axis='y', labelcolor='blue')
     
-    # النسبة التراكمية
     total = sum(y)
     cumsum = 0
     cum_percentages = []
@@ -160,19 +160,17 @@ def _create_pareto_chart(data, title):
     
     ax2 = ax.twinx()
     ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=5)
-    ax2.axhline(y=80, color='red', linestyle='--', alpha=0.6, linewidth=1.5)
+    ax2.axhline(y=80, color='red', linestyle='--', alpha=0.6)
     ax2.text(len(x)-1, 83, '80%', color='red', fontsize=8, ha='right')
     ax2.set_ylabel('النسبة التراكمية %', color='red', fontsize=9)
     ax2.tick_params(axis='y', labelcolor='red')
     ax2.set_ylim(0, 105)
     
-    ax.set_title(title, fontsize=11, fontweight='bold')
-    
-    # تدوير النصوص
+    ax.set_title(title, fontsize=11)
     plt.xticks(rotation=45, ha='right', fontsize=7)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout()
+    plt.tight_layout(pad=0.5)
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -182,28 +180,23 @@ def _create_pareto_chart(data, title):
 
 
 def _create_trend_chart(data, x_col, y_col, title):
-    """إنشاء مخطط اتجاهات محسّن"""
-    fig, ax = plt.subplots(figsize=(8, 4.5))
+    """إنشاء مخطط اتجاهات"""
+    fig, ax = plt.subplots(figsize=(7, 4.5))
     
     x = data[x_col].astype(str).tolist()
     y = data[y_col].tolist()
     
-    # أعمدة
     colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(x)))
     ax.bar(x, y, color=colors, alpha=0.7, label='المبيعات')
-    
-    # خط الاتجاه
     ax.plot(x, y, color='red', marker='o', linewidth=2.5, markersize=8, label='خط الاتجاه')
     
     ax.set_ylabel('المبيعات', fontsize=9)
-    ax.set_title(title, fontsize=11, fontweight='bold')
+    ax.set_title(title, fontsize=11)
     ax.legend(loc='upper left', fontsize=8)
-    
-    # تدوير النصوص
     plt.xticks(rotation=30, ha='right', fontsize=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout()
+    plt.tight_layout(pad=0.5)
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -303,7 +296,7 @@ def _write_sheet_with_charts(writer, sheet_name: str, frame: pd.DataFrame, chart
                         current_row += 1
                         
                         cell_pos = f"{get_column_letter(chart_start_col)}{current_row}"
-                        if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=380, height=240):
+                        if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=380, height=250):
                             current_row += 17
                         else:
                             error_cell = worksheet.cell(row=current_row, column=chart_start_col)
@@ -324,7 +317,7 @@ def _write_sheet_with_charts(writer, sheet_name: str, frame: pd.DataFrame, chart
             
             for col in range(chart_start_col, chart_start_col + 3):
                 col_letter = get_column_letter(col)
-                worksheet.column_dimensions[col_letter].width = 38
+                worksheet.column_dimensions[col_letter].width = 40
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)
@@ -378,7 +371,7 @@ def _write_pareto_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_titl
                     current_row += 1
                     
                     cell_pos = f"{get_column_letter(chart_start_col)}{current_row}"
-                    if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=380, height=240):
+                    if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=380, height=250):
                         current_row += 17
                     else:
                         error_cell = worksheet.cell(row=current_row, column=chart_start_col)
@@ -399,7 +392,7 @@ def _write_pareto_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_titl
             
             for col in range(chart_start_col, chart_start_col + 3):
                 col_letter = get_column_letter(col)
-                worksheet.column_dimensions[col_letter].width = 38
+                worksheet.column_dimensions[col_letter].width = 40
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)
@@ -458,7 +451,7 @@ def _write_trend_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_title
                     current_row += 1
                     
                     cell_pos = f"{get_column_letter(chart_start_col)}{current_row}"
-                    if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=380, height=240):
+                    if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=380, height=250):
                         current_row += 17
                     else:
                         error_cell = worksheet.cell(row=current_row, column=chart_start_col)
@@ -479,7 +472,7 @@ def _write_trend_sheet(writer, sheet_name: str, frame: pd.DataFrame, chart_title
             
             for col in range(chart_start_col, chart_start_col + 3):
                 col_letter = get_column_letter(col)
-                worksheet.column_dimensions[col_letter].width = 38
+                worksheet.column_dimensions[col_letter].width = 40
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)

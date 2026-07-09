@@ -59,15 +59,14 @@ WHITE = "#ffffff"
 LOGO_PATH = "logo.png"
 
 
-
 # ============================================================
 # دالة تقصير النصوص
 # ============================================================
-def _shorten_text(text, max_len=12):
+def _shorten_text(text, max_len=10):
     """تقصير النصوص الطويلة لتجنب التداخل في المخططات"""
     text = str(text)
     if len(text) > max_len:
-        return text[:max_len] + ".."
+        return text[:max_len] + "."
     return text
 
 
@@ -227,31 +226,86 @@ def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
     return Paragraph(ar(text), style)
 
 
-#====================================
-# إصلاح مخططات باريتو والأعمدة
-#========================================
-
-
+# ============================================================
+# دوال إنشاء المخططات باستخدام matplotlib (معدلة)
+# ============================================================
 def _create_bar_chart_pdf(data, x_col, y_col, title):
-    """إنشاء مخطط شريطي لـ PDF"""
-    fig, ax = plt.subplots(figsize=(8, 4))
+    """إنشاء مخطط شريطي للـ PDF - المبالغ بشكل طولي (عمودي)"""
+    fig, ax = plt.subplots(figsize=(7, 4))
     
+    # تقصير الأسماء
     x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
     y = data[y_col].tolist()
     
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
     bars = ax.bar(x, y, color=colors)
     
+    # إضافة المبالغ بشكل طولي (عمودي) فوق الأعمدة
+    max_y = max(y) if y else 1
     for bar, val in zip(bars, y):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
-               f'{val:,.0f}', ha='center', va='bottom', fontsize=7)
+        ax.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height() + max_y * 0.02,
+            f'{val:,.0f}',
+            ha='center',
+            va='bottom',
+            fontsize=7,
+            rotation=0
+        )
     
     ax.set_ylabel('المبيعات', fontsize=9)
     ax.set_title(title, fontsize=11)
     plt.xticks(rotation=45, ha='right', fontsize=7)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout()
+    plt.tight_layout(pad=0.5)
+    
+    img_buffer = BytesIO()
+    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    img_buffer.seek(0)
+    plt.close()
+    return img_buffer
+
+
+def _create_pie_chart_pdf(data, x_col, y_col, title):
+    """إنشاء مخطط دائري للـ PDF - دائري وليس بيضاوي، مع تقليل المسافة الفارغة"""
+    # استخدام figure مربع لضمان الشكل الدائري
+    fig, ax = plt.subplots(figsize=(6, 5))
+    
+    data = data.sort_values(y_col, ascending=False)
+    labels = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
+    values = data[y_col].tolist()
+    total = sum(values)
+    
+    if total > 0:
+        colors = plt.cm.Blues(np.linspace(0.3, 0.9, len(labels)))[::-1]
+        
+        def autopct_format(pct):
+            return f'{pct:.1f}%' if pct > 3 else ''
+        
+        wedges, texts, autotexts = ax.pie(
+            values,
+            labels=labels,
+            autopct=autopct_format,
+            colors=colors,
+            startangle=90,
+            pctdistance=0.75,
+            textprops={'fontsize': 7},
+            wedgeprops={'edgecolor': 'white', 'linewidth': 0.5}
+        )
+        ax.set_title(title, fontsize=11)
+        
+        for text in texts:
+            text.set_fontsize(7)
+        for autotext in autotexts:
+            autotext.set_fontsize(7)
+            autotext.set_color('white')
+        
+        # جعل المخطط دائرياً (نسبة العرض إلى الارتفاع 1:1)
+        ax.set_aspect('equal')
+    
+    # تقليل المساحة الفارغة حول المخطط
+    plt.tight_layout(pad=0.3)
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -261,8 +315,8 @@ def _create_bar_chart_pdf(data, x_col, y_col, title):
 
 
 def _create_pareto_chart_pdf(data, title):
-    """إنشاء مخطط باريتو محسّن لـ PDF"""
-    fig, ax = plt.subplots(figsize=(8, 4))
+    """إنشاء مخطط باريتو محسّن للـ PDF"""
+    fig, ax = plt.subplots(figsize=(7, 4))
     
     data = data.sort_values('الحالي', ascending=False)
     x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
@@ -292,7 +346,7 @@ def _create_pareto_chart_pdf(data, title):
     plt.xticks(rotation=45, ha='right', fontsize=7)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout()
+    plt.tight_layout(pad=0.5)
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -301,191 +355,75 @@ def _create_pareto_chart_pdf(data, title):
     return img_buffer
 
 
+def _create_trend_chart_pdf(data, x_col, y_col, title):
+    """إنشاء مخطط اتجاهات للـ PDF"""
+    fig, ax = plt.subplots(figsize=(7, 4))
+    
+    x = data[x_col].astype(str).tolist()
+    y = data[y_col].tolist()
+    
+    colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(x)))
+    ax.bar(x, y, color=colors, alpha=0.7, label='المبيعات')
+    ax.plot(x, y, color='red', marker='o', linewidth=2.5, markersize=8, label='خط الاتجاه')
+    
+    ax.set_ylabel('المبيعات', fontsize=9)
+    ax.set_title(title, fontsize=11)
+    ax.legend(loc='upper left', fontsize=8)
+    plt.xticks(rotation=30, ha='right', fontsize=8)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    
+    plt.tight_layout(pad=0.5)
+    
+    img_buffer = BytesIO()
+    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    img_buffer.seek(0)
+    plt.close()
+    return img_buffer
+
 
 # ============================================================
-# دوال إنشاء المخططات باستخدام matplotlib
+# دوال المخططات الرئيسية
 # ============================================================
-def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي") -> BytesIO | None:
-    """إنشاء صورة للشارت باستخدام matplotlib."""
-    data = df.head(10).copy()
-    if data.empty or len(data) < 2:
-        return None
-    
-    data = data.dropna(subset=[x_col, y_col])
-    if data.empty:
-        return None
-    
-    fig, ax = plt.subplots(figsize=(6, 4))
-    
-    if chart_type == "bar":
-        x = data[x_col].astype(str).tolist()
-        y = data[y_col].tolist()
-        colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe']
-        bars = ax.bar(x, y, color=colors_list[:len(x)])
-        ax.set_ylabel('المبيعات')
-        ax.set_title(title, fontsize=12)
-        for bar, val in zip(bars, y):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
-                   f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
-        plt.xticks(rotation=45, ha='right')
-        
-    elif chart_type == "pie":
-        data = data.sort_values(y_col, ascending=False)
-        labels = data[x_col].astype(str).tolist()
-        values = data[y_col].tolist()
-        total = sum(values)
-        if total > 0:
-            colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff']
-            wedges, texts, autotexts = ax.pie(
-                values, 
-                labels=labels, 
-                autopct=lambda pct: f'{pct:.1f}%' if pct > 2 else '',
-                colors=colors_list[:len(labels)],
-                startangle=90,
-                pctdistance=0.85
-            )
-            ax.set_title(title, fontsize=12)
-            for text in texts:
-                text.set_fontsize(8)
-            for autotext in autotexts:
-                autotext.set_fontsize(8)
-                autotext.set_color('white')
-    
-    else:
-        plt.close()
-        return None
-    
-    plt.tight_layout()
-    
-    try:
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
-        img_buffer.seek(0)
-        plt.close()
-        return img_buffer
-    except Exception as e:
-        print(f"❌ خطأ في حفظ الصورة: {e}")
-        plt.close()
-        return None
-
-
 def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    img_bytes = _create_chart_image_matplotlib(frame, "bar", title)
+    data = frame.head(10).copy()
+    if data.empty or len(data) < 2:
+        return _create_fallback_table(title)
+    
+    img_bytes = _create_bar_chart_pdf(data, "الاسم", "الحالي", title)
     if img_bytes:
-        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=16.0 * cm, height=(16.0 * cm) * 250 / 700)
         image.hAlign = "CENTER"
         return image
     
-    fallback = Table(
-        [[ar(f"⚠️ تعذر إنشاء مخطط {title}")]],
-        colWidths=[PAGE_WIDTH - 2.8 * cm],
-        rowHeights=[1.2 * cm],
-    )
-    fallback.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
-                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
-            ]
-        )
-    )
-    return fallback
+    return _create_fallback_table(title)
 
 
 def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    img_bytes = _create_chart_image_matplotlib(frame, "pie", title)
+    data = frame.head(8).copy()
+    if data.empty or len(data) < 2:
+        return _create_fallback_table(title)
+    
+    img_bytes = _create_pie_chart_pdf(data, "الاسم", "الحالي", title)
     if img_bytes:
-        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=14.0 * cm, height=(14.0 * cm) * 250 / 600)
         image.hAlign = "CENTER"
         return image
     
-    fallback = Table(
-        [[ar(f"⚠️ تعذر إنشاء مخطط {title}")]],
-        colWidths=[PAGE_WIDTH - 2.8 * cm],
-        rowHeights=[1.2 * cm],
-    )
-    fallback.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
-                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
-            ]
-        )
-    )
-    return fallback
+    return _create_fallback_table(title)
 
 
 def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
     data = _pareto_frame(frame).head(10)
-    if not data.empty and "الاسم" in data.columns and "الحالي" in data.columns:
-        try:
-            data = data.sort_values("الحالي", ascending=False)
-            x = data["الاسم"].astype(str).tolist()
-            y = data["الحالي"].tolist()
-            
-            fig, ax = plt.subplots(figsize=(6, 4))
-            
-            bars = ax.bar(x, y, color='#2563eb', alpha=0.7)
-            ax.set_ylabel('المبيعات', color='blue')
-            ax.tick_params(axis='y', labelcolor='blue')
-            
-            total = sum(y)
-            cumsum = 0
-            cum_percentages = []
-            for val in y:
-                cumsum += val
-                cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
-            
-            ax2 = ax.twinx()
-            ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=6)
-            ax2.axhline(y=80, color='red', linestyle='--', alpha=0.5)
-            ax2.text(len(x)-1, 82, '80%', color='red', fontsize=9, ha='right')
-            ax2.set_ylabel('النسبة التراكمية %', color='red')
-            ax2.tick_params(axis='y', labelcolor='red')
-            ax2.set_ylim(0, 105)
-            
-            ax.set_title(title, fontsize=12)
-            plt.xticks(rotation=45, ha='right')
-            plt.tight_layout()
-            
-            img_buffer = BytesIO()
-            plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
-            img_buffer.seek(0)
-            plt.close()
-            
-            image = Image(img_buffer, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
-            image.hAlign = "CENTER"
-            return image
-            
-        except Exception as e:
-            print(f"⚠️ خطأ في مخطط باريتو: {e}")
+    if data.empty or len(data) < 2:
+        return _create_fallback_table(title)
     
-    fallback = Table(
-        [[ar(f"⚠️ تعذر إنشاء مخطط {title}")]],
-        colWidths=[PAGE_WIDTH - 2.8 * cm],
-        rowHeights=[1.2 * cm],
-    )
-    fallback.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
-                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
-                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
-                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
-            ]
-        )
-    )
-    return fallback
+    img_bytes = _create_pareto_chart_pdf(data, title)
+    if img_bytes:
+        image = Image(img_bytes, width=16.0 * cm, height=(16.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    return _create_fallback_table(title)
 
 
 def _trend_chart(metrics: dict) -> Image | Table:
@@ -493,32 +431,19 @@ def _trend_chart(metrics: dict) -> Image | Table:
     values = [metrics.get("previous_total", 0), metrics.get("current_total", 0)]
     data = pd.DataFrame({'x': labels, 'y': values})
     
-    try:
-        fig, ax = plt.subplots(figsize=(6, 4))
-        x = data['x'].tolist()
-        y = data['y'].tolist()
-        
-        ax.bar(x, y, color='#2563eb', alpha=0.6, label='المبيعات')
-        ax.plot(x, y, color='red', marker='o', linewidth=2, markersize=8, label='خط الاتجاه')
-        ax.set_ylabel('المبيعات')
-        ax.set_title('تحليل الاتجاه بين الفترة السابقة والحالية', fontsize=12)
-        ax.legend()
-        plt.tight_layout()
-        
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
-        img_buffer.seek(0)
-        plt.close()
-        
-        image = Image(img_buffer, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+    img_bytes = _create_trend_chart_pdf(data, 'x', 'y', 'تحليل الاتجاه بين الفترة السابقة والحالية')
+    if img_bytes:
+        image = Image(img_bytes, width=16.0 * cm, height=(16.0 * cm) * 250 / 700)
         image.hAlign = "CENTER"
         return image
-        
-    except Exception as e:
-        print(f"⚠️ خطأ في مخطط الاتجاهات: {e}")
     
+    return _create_fallback_table("مخطط الاتجاهات")
+
+
+def _create_fallback_table(title: str) -> Table:
+    """إنشاء جدول بديل في حالة فشل المخطط"""
     fallback = Table(
-        [[ar("⚠️ تعذر إنشاء مخطط الاتجاهات")]],
+        [[ar(f"⚠️ تعذر إنشاء المخطط")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
         rowHeights=[1.2 * cm],
     )
@@ -563,7 +488,7 @@ def _metrics_frame(metrics: dict) -> pd.DataFrame:
 
 
 # ============================================================
-# دوال بناء التقرير (نفسها)
+# دوال بناء التقرير
 # ============================================================
 def _cover_logo() -> Image | Table:
     if os.path.exists(LOGO_PATH):
@@ -708,7 +633,7 @@ def _add_table_section(story: list, title: str, frame: pd.DataFrame, styles: dic
 def _add_chart_block(story: list, chart_flowables: Iterable[Image | Table]):
     for chart in chart_flowables:
         story.append(chart)
-        story.append(Spacer(1, 0.3 * cm))
+        story.append(Spacer(1, 0.2 * cm))
 
 
 def _add_dimension_section(story: list, title: str, frame: pd.DataFrame, styles: dict[str, ParagraphStyle]):
@@ -989,9 +914,9 @@ def export_to_pdf(
     story.append(PageBreak())
 
     _add_section(story, "تحليل باريتو", styles)
-    story.append(KeepTogether([_pareto_chart(customers, "مخطط باريتو للعملاء"), Spacer(1, 0.3 * cm)]))
+    story.append(KeepTogether([_pareto_chart(customers, "مخطط باريتو للعملاء"), Spacer(1, 0.2 * cm)]))
     story.append(_pareto_chart(products, "مخطط باريتو للمنتجات"))
-    story.append(Spacer(1, 0.35 * cm))
+    story.append(Spacer(1, 0.3 * cm))
 
     _add_section(story, "الاستنتاجات", styles)
     story.append(
