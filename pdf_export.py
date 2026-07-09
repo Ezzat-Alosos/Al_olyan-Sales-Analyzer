@@ -42,9 +42,9 @@ except ImportError:
     get_display = None
 
 
-PROGRAM_NAME = "تقرير العصعص لتحليل المبيعات"
+PROGRAM_NAME = "تقرير العليان لتحليل المبيعات"
 PROGRAM_SUBTITLE = "Al-osos Professional Sales Analyzer 2026"
-DEVELOPER_NAME = "المهندس المالي : عزت العصعص | أتمتة الأعمال بلغة البايثون والذكاء الاصطناعي"
+DEVELOPER_NAME = "المهندس المالي : عزت العليان | أتمتة الأعمال بلغة البايثون والذكاء الاصطناعي"
 CONTACT_LINE = "للتواصل : 777884468"
 
 PAGE_SIZE = landscape(A4)
@@ -492,7 +492,7 @@ def _cover_logo() -> Image | Table:
         except Exception:
             pass
     
-    table = Table([[ar("العصعص")]], colWidths=[3.0 * cm], rowHeights=[3.0 * cm])
+    table = Table([[ar("العليان")]], colWidths=[3.0 * cm], rowHeights=[3.0 * cm])
     table.setStyle(
         TableStyle(
             [
@@ -775,7 +775,7 @@ def _draw_logo(c: canvas.Canvas, x: float, y: float, size: float):
     c.circle(x + size / 2, y + size / 2, size * 0.33, stroke=0, fill=1)
     c.setFillColor(colors.white)
     c.setFont(FONT_NAME, 8)
-    c.drawCentredString(x + size / 2, y + size / 2 - 3, ar("العصعص"))
+    c.drawCentredString(x + size / 2, y + size / 2 - 3, ar("العليان"))
 
 
 def _draw_header(c: canvas.Canvas):
@@ -801,7 +801,7 @@ def _draw_header(c: canvas.Canvas):
     
     c.setFont(FONT_NAME, 15)
     c.setFillColor(colors.HexColor(NAVY))
-    c.drawRightString(PAGE_WIDTH - 1.15 * cm, top - 0.2 * cm, ar("العصعص"))
+    c.drawRightString(PAGE_WIDTH - 1.15 * cm, top - 0.2 * cm, ar("العليان"))
     
     c.setStrokeColor(colors.HexColor(BLUE))
     c.setLineWidth(1.1)
