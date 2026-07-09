@@ -51,7 +51,7 @@ def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
 
 
 def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي") -> BytesIO | None:
-    """إنشاء صورة للشارت باستخدام matplotlib."""
+    """إنشاء صورة للشارت باستخدام matplotlib مع تحسين عرض النصوص."""
     data = df.head(10).copy()
     if data.empty or len(data) < 2:
         return None
@@ -60,23 +60,36 @@ def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str
     if data.empty:
         return None
     
-    fig, ax = plt.subplots(figsize=(6, 4))
+    # تقصير النصوص الطويلة
+    def shorten_text(text, max_len=15):
+        text = str(text)
+        if len(text) > max_len:
+            return text[:max_len] + "..."
+        return text
+    
+    fig, ax = plt.subplots(figsize=(8, 5))  # زيادة الحجم قليلاً
     
     if chart_type == "bar":
-        x = data[x_col].astype(str).tolist()
+        x = data[x_col].astype(str).apply(shorten_text).tolist()
         y = data[y_col].tolist()
         colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe']
         bars = ax.bar(x, y, color=colors_list[:len(x)])
-        ax.set_ylabel('المبيعات')
+        ax.set_ylabel('المبيعات', fontsize=10)
         ax.set_title(title, fontsize=12)
+        
+        # إضافة القيم فوق الأعمدة بمسافة كافية
+        max_y = max(y) if y else 1
         for bar, val in zip(bars, y):
-            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
-                   f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
-        plt.xticks(rotation=45, ha='right')
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max_y * 0.02,
+                   f'{val:,.0f}', ha='center', va='bottom', fontsize=7, rotation=0)
+        
+        # تدوير النصوص لتجنب التداخل
+        plt.xticks(rotation=30, ha='right', fontsize=8)
+        plt.yticks(fontsize=8)
         
     elif chart_type == "pie":
         data = data.sort_values(y_col, ascending=False)
-        labels = data[x_col].astype(str).tolist()
+        labels = data[x_col].astype(str).apply(shorten_text).tolist()
         values = data[y_col].tolist()
         total = sum(values)
         if total > 0:
@@ -87,13 +100,14 @@ def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str
                 autopct=lambda pct: f'{pct:.1f}%' if pct > 2 else '',
                 colors=colors_list[:len(labels)],
                 startangle=90,
-                pctdistance=0.85
+                pctdistance=0.85,
+                textprops={'fontsize': 7}
             )
             ax.set_title(title, fontsize=12)
             for text in texts:
-                text.set_fontsize(8)
+                text.set_fontsize(7)
             for autotext in autotexts:
-                autotext.set_fontsize(8)
+                autotext.set_fontsize(7)
                 autotext.set_color('white')
     
     else:
@@ -104,7 +118,7 @@ def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str
     
     try:
         img_buffer = BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+        plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
         img_buffer.seek(0)
         plt.close()
         return img_buffer
@@ -179,8 +193,9 @@ def _write_sheet_with_charts(writer, sheet_name: str, frame: pd.DataFrame, chart
                         current_row += 1
                         
                         cell_pos = f"{get_column_letter(chart_start_col)}{current_row}"
-                        if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=300, height=200):
-                            current_row += 14
+                        # زيادة حجم الصورة قليلاً
+                        if _add_image_to_sheet(worksheet, img_bytes, cell_pos, width=350, height=230):
+                            current_row += 16
                         else:
                             error_cell = worksheet.cell(row=current_row, column=chart_start_col)
                             error_cell.value = f"⚠️ فشل إدراج الصورة"
@@ -198,9 +213,10 @@ def _write_sheet_with_charts(writer, sheet_name: str, frame: pd.DataFrame, chart
                     error_cell.font = Font(color="EF4444", size=9)
                     current_row += 2
             
+            # توسيع عرض الأعمدة للمخططات
             for col in range(chart_start_col, chart_start_col + 3):
                 col_letter = get_column_letter(col)
-                worksheet.column_dimensions[col_letter].width = 30
+                worksheet.column_dimensions[col_letter].width = 35
                 
         except Exception as e:
             error_cell = worksheet.cell(row=1, column=5)
