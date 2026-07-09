@@ -6,4 +6,5 @@ xlrd>=2.0.1
 reportlab>=4.2.0
 arabic-reshaper>=3.0.0
 python-bidi>=0.4.2
-kaleido>=0.2.1
+matplotlib>=3.7.0
+pillow>=10.0.0

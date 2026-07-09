@@ -6,7 +6,10 @@ from io import BytesIO
 from typing import Iterable
 
 import pandas as pd
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+import numpy as np
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4, landscape
@@ -213,42 +216,238 @@ def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
 
 
 # ============================================================
-# دوال المخططات (تعطيل مؤقت)
+# دوال إنشاء المخططات باستخدام matplotlib
 # ============================================================
-def _bar_chart(frame: pd.DataFrame, title: str) -> Table:
-    """مخطط شريطي - معطل مؤقتاً"""
-    return Table(
-        [[ar(f"⚠️ مخطط {title} - قيد التطوير")]],
+def _create_chart_image_matplotlib(df: pd.DataFrame, chart_type: str, title: str, x_col: str = "الاسم", y_col: str = "الحالي") -> BytesIO | None:
+    """إنشاء صورة للشارت باستخدام matplotlib."""
+    data = df.head(10).copy()
+    if data.empty or len(data) < 2:
+        return None
+    
+    data = data.dropna(subset=[x_col, y_col])
+    if data.empty:
+        return None
+    
+    fig, ax = plt.subplots(figsize=(6, 4))
+    
+    if chart_type == "bar":
+        x = data[x_col].astype(str).tolist()
+        y = data[y_col].tolist()
+        colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe']
+        bars = ax.bar(x, y, color=colors_list[:len(x)])
+        ax.set_ylabel('المبيعات')
+        ax.set_title(title, fontsize=12)
+        for bar, val in zip(bars, y):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
+                   f'{val:,.0f}', ha='center', va='bottom', fontsize=8)
+        plt.xticks(rotation=45, ha='right')
+        
+    elif chart_type == "pie":
+        data = data.sort_values(y_col, ascending=False)
+        labels = data[x_col].astype(str).tolist()
+        values = data[y_col].tolist()
+        total = sum(values)
+        if total > 0:
+            colors_list = ['#1e3a8a', '#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff']
+            wedges, texts, autotexts = ax.pie(
+                values, 
+                labels=labels, 
+                autopct=lambda pct: f'{pct:.1f}%' if pct > 2 else '',
+                colors=colors_list[:len(labels)],
+                startangle=90,
+                pctdistance=0.85
+            )
+            ax.set_title(title, fontsize=12)
+            for text in texts:
+                text.set_fontsize(8)
+            for autotext in autotexts:
+                autotext.set_fontsize(8)
+                autotext.set_color('white')
+    
+    else:
+        plt.close()
+        return None
+    
+    plt.tight_layout()
+    
+    try:
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+        img_buffer.seek(0)
+        plt.close()
+        return img_buffer
+    except Exception as e:
+        print(f"❌ خطأ في حفظ الصورة: {e}")
+        plt.close()
+        return None
+
+
+def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
+    img_bytes = _create_chart_image_matplotlib(frame, "bar", title)
+    if img_bytes:
+        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    fallback = Table(
+        [[ar(f"⚠️ تعذر إنشاء مخطط {title}")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
         rowHeights=[1.2 * cm],
     )
+    fallback.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
+            ]
+        )
+    )
+    return fallback
 
 
-def _pie_chart(frame: pd.DataFrame, title: str) -> Table:
-    """مخطط دائري - معطل مؤقتاً"""
-    return Table(
-        [[ar(f"⚠️ مخطط {title} - قيد التطوير")]],
+def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
+    img_bytes = _create_chart_image_matplotlib(frame, "pie", title)
+    if img_bytes:
+        image = Image(img_bytes, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+    
+    fallback = Table(
+        [[ar(f"⚠️ تعذر إنشاء مخطط {title}")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
         rowHeights=[1.2 * cm],
     )
+    fallback.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
+            ]
+        )
+    )
+    return fallback
 
 
-def _pareto_chart(frame: pd.DataFrame, title: str) -> Table:
-    """مخطط باريتو - معطل مؤقتاً"""
-    return Table(
-        [[ar(f"⚠️ مخطط {title} - قيد التطوير")]],
+def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
+    data = _pareto_frame(frame).head(10)
+    if not data.empty and "الاسم" in data.columns and "الحالي" in data.columns:
+        try:
+            data = data.sort_values("الحالي", ascending=False)
+            x = data["الاسم"].astype(str).tolist()
+            y = data["الحالي"].tolist()
+            
+            fig, ax = plt.subplots(figsize=(6, 4))
+            
+            bars = ax.bar(x, y, color='#2563eb', alpha=0.7)
+            ax.set_ylabel('المبيعات', color='blue')
+            ax.tick_params(axis='y', labelcolor='blue')
+            
+            total = sum(y)
+            cumsum = 0
+            cum_percentages = []
+            for val in y:
+                cumsum += val
+                cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
+            
+            ax2 = ax.twinx()
+            ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=6)
+            ax2.axhline(y=80, color='red', linestyle='--', alpha=0.5)
+            ax2.text(len(x)-1, 82, '80%', color='red', fontsize=9, ha='right')
+            ax2.set_ylabel('النسبة التراكمية %', color='red')
+            ax2.tick_params(axis='y', labelcolor='red')
+            ax2.set_ylim(0, 105)
+            
+            ax.set_title(title, fontsize=12)
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            
+            img_buffer = BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+            img_buffer.seek(0)
+            plt.close()
+            
+            image = Image(img_buffer, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+            image.hAlign = "CENTER"
+            return image
+            
+        except Exception as e:
+            print(f"⚠️ خطأ في مخطط باريتو: {e}")
+    
+    fallback = Table(
+        [[ar(f"⚠️ تعذر إنشاء مخطط {title}")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
         rowHeights=[1.2 * cm],
     )
+    fallback.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
+            ]
+        )
+    )
+    return fallback
 
 
-def _trend_chart(metrics: dict) -> Table:
-    """مخطط الاتجاهات - معطل مؤقتاً"""
-    return Table(
-        [[ar("⚠️ مخطط الاتجاهات - قيد التطوير")]],
+def _trend_chart(metrics: dict) -> Image | Table:
+    labels = ["السابق", "الحالي"]
+    values = [metrics.get("previous_total", 0), metrics.get("current_total", 0)]
+    data = pd.DataFrame({'x': labels, 'y': values})
+    
+    try:
+        fig, ax = plt.subplots(figsize=(6, 4))
+        x = data['x'].tolist()
+        y = data['y'].tolist()
+        
+        ax.bar(x, y, color='#2563eb', alpha=0.6, label='المبيعات')
+        ax.plot(x, y, color='red', marker='o', linewidth=2, markersize=8, label='خط الاتجاه')
+        ax.set_ylabel('المبيعات')
+        ax.set_title('تحليل الاتجاه بين الفترة السابقة والحالية', fontsize=12)
+        ax.legend()
+        plt.tight_layout()
+        
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+        img_buffer.seek(0)
+        plt.close()
+        
+        image = Image(img_buffer, width=18.0 * cm, height=(18.0 * cm) * 250 / 700)
+        image.hAlign = "CENTER"
+        return image
+        
+    except Exception as e:
+        print(f"⚠️ خطأ في مخطط الاتجاهات: {e}")
+    
+    fallback = Table(
+        [[ar("⚠️ تعذر إنشاء مخطط الاتجاهات")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
         rowHeights=[1.2 * cm],
     )
+    fallback.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(PALE_BLUE)),
+                ("TEXTCOLOR", (0, 0), (-1, -1), colors.HexColor(NAVY)),
+                ("FONTNAME", (0, 0), (-1, -1), FONT_NAME),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor(LIGHT_BLUE)),
+            ]
+        )
+    )
+    return fallback
 
 
 def _pareto_frame(frame: pd.DataFrame) -> pd.DataFrame:
@@ -277,7 +476,7 @@ def _metrics_frame(metrics: dict) -> pd.DataFrame:
 
 
 # ============================================================
-# دوال بناء التقرير
+# دوال بناء التقرير (نفسها)
 # ============================================================
 def _cover_logo() -> Image | Table:
     if os.path.exists(LOGO_PATH):
