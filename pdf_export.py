@@ -59,6 +59,18 @@ WHITE = "#ffffff"
 LOGO_PATH = "logo.png"
 
 
+
+# ============================================================
+# دالة تقصير النصوص
+# ============================================================
+def _shorten_text(text, max_len=12):
+    """تقصير النصوص الطويلة لتجنب التداخل في المخططات"""
+    text = str(text)
+    if len(text) > max_len:
+        return text[:max_len] + ".."
+    return text
+
+
 # ============================================================
 # دالة تسجيل الخط العربي
 # ============================================================
@@ -213,6 +225,81 @@ def _styles() -> dict[str, ParagraphStyle]:
 
 def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
     return Paragraph(ar(text), style)
+
+
+#====================================
+# إصلاح مخططات باريتو والأعمدة
+#========================================
+
+
+def _create_bar_chart_pdf(data, x_col, y_col, title):
+    """إنشاء مخطط شريطي لـ PDF"""
+    fig, ax = plt.subplots(figsize=(8, 4))
+    
+    x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
+    y = data[y_col].tolist()
+    
+    colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
+    bars = ax.bar(x, y, color=colors)
+    
+    for bar, val in zip(bars, y):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(y)*0.01,
+               f'{val:,.0f}', ha='center', va='bottom', fontsize=7)
+    
+    ax.set_ylabel('المبيعات', fontsize=9)
+    ax.set_title(title, fontsize=11)
+    plt.xticks(rotation=45, ha='right', fontsize=7)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    
+    plt.tight_layout()
+    
+    img_buffer = BytesIO()
+    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    img_buffer.seek(0)
+    plt.close()
+    return img_buffer
+
+
+def _create_pareto_chart_pdf(data, title):
+    """إنشاء مخطط باريتو محسّن لـ PDF"""
+    fig, ax = plt.subplots(figsize=(8, 4))
+    
+    data = data.sort_values('الحالي', ascending=False)
+    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
+    y = data['الحالي'].tolist()
+    
+    colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
+    bars = ax.bar(x, y, color=colors, alpha=0.8)
+    ax.set_ylabel('المبيعات', color='blue', fontsize=9)
+    ax.tick_params(axis='y', labelcolor='blue')
+    
+    total = sum(y)
+    cumsum = 0
+    cum_percentages = []
+    for val in y:
+        cumsum += val
+        cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
+    
+    ax2 = ax.twinx()
+    ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=5)
+    ax2.axhline(y=80, color='red', linestyle='--', alpha=0.6)
+    ax2.text(len(x)-1, 83, '80%', color='red', fontsize=8, ha='right')
+    ax2.set_ylabel('النسبة التراكمية %', color='red', fontsize=9)
+    ax2.tick_params(axis='y', labelcolor='red')
+    ax2.set_ylim(0, 105)
+    
+    ax.set_title(title, fontsize=11)
+    plt.xticks(rotation=45, ha='right', fontsize=7)
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    
+    plt.tight_layout()
+    
+    img_buffer = BytesIO()
+    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    img_buffer.seek(0)
+    plt.close()
+    return img_buffer
+
 
 
 # ============================================================
