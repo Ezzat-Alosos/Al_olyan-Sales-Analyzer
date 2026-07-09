@@ -19,22 +19,24 @@ COLUMN_ALIASES = {
     "التاريخ": "التاريخ",
     "تاريخ": "التاريخ",
     "العميل": "الاسم",
+    "عميل": "الاسم",
     "الاسم": "الاسم",
     "اسم_العميل": "الاسم",
     "اسم العميل": "الاسم",
     "المندوب": "المندوب",
-    "المندوب_اسم": "المندوب",
-    "المندوباسم": "المندوب",
+    "مندوب": "المندوب",
     "المناديب": "المندوب",
     "الصنف": "الصنف",
-    "الأصناف": "الصنف",
     "المنتج": "الصنف",
+    "منتج": "الصنف",
     "المنتجات": "الصنف",
     "الفرع": "الفرع",
-    "الفروع": "الفرع",
+    "فروع": "الفرع",
     "المبيعات": "المبيعات",
     "قيمة_المبيعات": "المبيعات",
     "قيمة المبيعات": "المبيعات",
+    "قيمة_مبيعات": "المبيعات",
+    "قيمة مبيعات": "المبيعات",
 }
 
 
@@ -66,25 +68,61 @@ def load_excel_file(file: BinaryIO) -> pd.DataFrame:
 
     try:
         engine = "openpyxl" if extension == ".xlsx" else "xlrd"
-        df = pd.read_excel(file, engine=engine)
+        
+        # ============================================================
+        # محاولة قراءة الملف مع عرض أسماء الأوراق (للتصحيح)
+        # ============================================================
+        try:
+            # قراءة الملف مع engine
+            df = pd.read_excel(file, engine=engine)
+        except Exception as e1:
+            # إذا فشل، حاول قراءة الملف بدون تحديد engine
+            try:
+                file.seek(0)  # إعادة المؤشر إلى بداية الملف
+                df = pd.read_excel(file)
+            except Exception as e2:
+                # إذا فشل مرة أخرى، حاول قراءة جميع الأوراق
+                try:
+                    file.seek(0)
+                    xls = pd.ExcelFile(file)
+                    sheet_names = xls.sheet_names
+                    print(f"📋 أسماء الأوراق في الملف: {sheet_names}")
+                    # قراءة أول ورقة
+                    df = pd.read_excel(file, sheet_name=sheet_names[0])
+                except Exception as e3:
+                    raise DataValidationError(f"تعذر قراءة ملف Excel: {e3}") from e3
+                    
     except Exception as exc:
         raise DataValidationError(f"تعذر قراءة ملف Excel: {exc}") from exc
 
-    return clean_sales_data(df)
+    # طباعة أسماء الأعمدة للتصحيح
+    print(f"📋 أسماء الأعمدة في الملف: {list(df.columns)}")
+    
+    return clean_sales_data(df, filename)
 
 
-def clean_sales_data(df: pd.DataFrame) -> pd.DataFrame:
+def clean_sales_data(df: pd.DataFrame, filename: str = "") -> pd.DataFrame:
     """تنظيف أسماء الأعمدة وتوحيد التاريخ وإنشاء أعمدة الفترة الزمنية."""
     if df.empty:
         raise DataValidationError("ملف Excel فارغ ولا يحتوي على بيانات.")
 
     df = df.copy()
     df.columns = [str(column).strip() for column in df.columns]
+    
+    # محاولة إعادة تسمية الأعمدة
     df = _rename_columns(df)
+    
+    # طباعة الأعمدة بعد إعادة التسمية
+    print(f"📋 الأعمدة بعد إعادة التسمية: {list(df.columns)}")
 
+    # التحقق من الأعمدة المطلوبة
     missing = [column for column in REQUIRED_COLUMNS if column not in df.columns]
     if missing:
-        raise DataValidationError("الأعمدة المطلوبة غير موجودة: " + "، ".join(missing))
+        raise DataValidationError(
+            f"الأعمدة المطلوبة غير موجودة: {', '.join(missing)}\n"
+            f"الأعمدة الموجودة في ملفك: {', '.join(df.columns)}\n"
+            f"تأكد من أن لديك الأعمدة: {', '.join(REQUIRED_COLUMNS)}"
+        )
 
     df = df[REQUIRED_COLUMNS].copy()
 
@@ -92,9 +130,6 @@ def clean_sales_data(df: pd.DataFrame) -> pd.DataFrame:
         df[column] = df[column].astype(str).str.strip()
         df[column] = df[column].replace({"": "غير محدد", "nan": "غير محدد", "None": "غير محدد"})
 
-    # ============================================================
-    # التعديل 1: تحسين سرعة تحويل التواريخ باستخدام infer_datetime_format
-    # ============================================================
     df["التاريخ"] = pd.to_datetime(df["التاريخ"], errors="coerce")    
     invalid_dates = int(df["التاريخ"].isna().sum())
     if invalid_dates:
