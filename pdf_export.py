@@ -62,8 +62,8 @@ LOGO_PATH = "logo.png"
 # ============================================================
 # دالة تقصير النصوص
 # ============================================================
-def _shorten_text(text, max_len=10):
-    """تقصير النصوص الطويلة لتجنب التداخل في المخططات"""
+def _shorten_text(text, max_len=8):
+    """تقصير النصوص الطويلة لتجنب التداخل"""
     text = str(text)
     if len(text) > max_len:
         return text[:max_len] + "."
@@ -227,20 +227,18 @@ def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
 
 
 # ============================================================
-# دوال إنشاء المخططات باستخدام matplotlib (معدلة)
+# دوال إنشاء المخططات
 # ============================================================
 def _create_bar_chart_pdf(data, x_col, y_col, title):
-    """إنشاء مخطط شريطي للـ PDF - المبالغ بشكل طولي (عمودي)"""
-    fig, ax = plt.subplots(figsize=(7, 4))
+    """إنشاء مخطط شريطي للـ PDF"""
+    fig, ax = plt.subplots(figsize=(10, 5))
     
-    # تقصير الأسماء
     x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
     y = data[y_col].tolist()
     
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
     bars = ax.bar(x, y, color=colors)
     
-    # إضافة المبالغ بشكل طولي (عمودي) فوق الأعمدة
     max_y = max(y) if y else 1
     for bar, val in zip(bars, y):
         ax.text(
@@ -249,16 +247,15 @@ def _create_bar_chart_pdf(data, x_col, y_col, title):
             f'{val:,.0f}',
             ha='center',
             va='bottom',
-            fontsize=7,
-            rotation=0
+            fontsize=8
         )
     
-    ax.set_ylabel('المبيعات', fontsize=9)
-    ax.set_title(title, fontsize=11)
-    plt.xticks(rotation=45, ha='right', fontsize=7)
+    ax.set_ylabel('المبيعات', fontsize=10)
+    ax.set_title(title, fontsize=12, fontweight='bold')
+    plt.xticks(rotation=45, ha='right', fontsize=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout(pad=0.5)
+    plt.tight_layout()
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -268,9 +265,8 @@ def _create_bar_chart_pdf(data, x_col, y_col, title):
 
 
 def _create_pie_chart_pdf(data, x_col, y_col, title):
-    """إنشاء مخطط دائري للـ PDF - دائري وليس بيضاوي، مع تقليل المسافة الفارغة"""
-    # استخدام figure مربع لضمان الشكل الدائري
-    fig, ax = plt.subplots(figsize=(6, 5))
+    """إنشاء مخطط دائري للـ PDF"""
+    fig, ax = plt.subplots(figsize=(8, 6))
     
     data = data.sort_values(y_col, ascending=False)
     labels = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
@@ -290,22 +286,20 @@ def _create_pie_chart_pdf(data, x_col, y_col, title):
             colors=colors,
             startangle=90,
             pctdistance=0.75,
-            textprops={'fontsize': 7},
+            textprops={'fontsize': 8},
             wedgeprops={'edgecolor': 'white', 'linewidth': 0.5}
         )
-        ax.set_title(title, fontsize=11)
+        ax.set_title(title, fontsize=12, fontweight='bold')
         
         for text in texts:
-            text.set_fontsize(7)
+            text.set_fontsize(8)
         for autotext in autotexts:
-            autotext.set_fontsize(7)
+            autotext.set_fontsize(8)
             autotext.set_color('white')
         
-        # جعل المخطط دائرياً (نسبة العرض إلى الارتفاع 1:1)
         ax.set_aspect('equal')
     
-    # تقليل المساحة الفارغة حول المخطط
-    plt.tight_layout(pad=0.3)
+    plt.tight_layout()
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -315,17 +309,17 @@ def _create_pie_chart_pdf(data, x_col, y_col, title):
 
 
 def _create_pareto_chart_pdf(data, title):
-    """إنشاء مخطط باريتو محسّن للـ PDF"""
-    fig, ax = plt.subplots(figsize=(7, 4))
+    """إنشاء مخطط باريتو للـ PDF"""
+    fig, ax = plt.subplots(figsize=(10, 5))
     
     data = data.sort_values('الحالي', ascending=False)
     x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
     y = data['الحالي'].tolist()
     
-    colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
-    bars = ax.bar(x, y, color=colors, alpha=0.8)
-    ax.set_ylabel('المبيعات', color='blue', fontsize=9)
-    ax.tick_params(axis='y', labelcolor='blue')
+    colors = plt.cm.Blues(np.linspace(0.5, 0.95, len(x)))[::-1]
+    bars = ax.bar(x, y, color=colors, alpha=0.9, edgecolor='darkblue', linewidth=0.5)
+    ax.set_ylabel('المبيعات', color='darkblue', fontsize=10, fontweight='bold')
+    ax.tick_params(axis='y', labelcolor='darkblue')
     
     total = sum(y)
     cumsum = 0
@@ -335,18 +329,18 @@ def _create_pareto_chart_pdf(data, title):
         cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
     
     ax2 = ax.twinx()
-    ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=5)
-    ax2.axhline(y=80, color='red', linestyle='--', alpha=0.6)
-    ax2.text(len(x)-1, 83, '80%', color='red', fontsize=8, ha='right')
-    ax2.set_ylabel('النسبة التراكمية %', color='red', fontsize=9)
-    ax2.tick_params(axis='y', labelcolor='red')
+    ax2.plot(x, cum_percentages, color='#dc2626', marker='o', linewidth=2.5, markersize=6)
+    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.8, linewidth=2)
+    ax2.text(len(x)-1, 84, '80%', color='#dc2626', fontsize=9, fontweight='bold', ha='right')
+    ax2.set_ylabel('النسبة التراكمية %', color='#dc2626', fontsize=10, fontweight='bold')
+    ax2.tick_params(axis='y', labelcolor='#dc2626')
     ax2.set_ylim(0, 105)
     
-    ax.set_title(title, fontsize=11)
-    plt.xticks(rotation=45, ha='right', fontsize=7)
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
+    plt.xticks(rotation=45, ha='right', fontsize=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout(pad=0.5)
+    plt.tight_layout()
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -357,7 +351,7 @@ def _create_pareto_chart_pdf(data, title):
 
 def _create_trend_chart_pdf(data, x_col, y_col, title):
     """إنشاء مخطط اتجاهات للـ PDF"""
-    fig, ax = plt.subplots(figsize=(7, 4))
+    fig, ax = plt.subplots(figsize=(10, 5))
     
     x = data[x_col].astype(str).tolist()
     y = data[y_col].tolist()
@@ -366,13 +360,13 @@ def _create_trend_chart_pdf(data, x_col, y_col, title):
     ax.bar(x, y, color=colors, alpha=0.7, label='المبيعات')
     ax.plot(x, y, color='red', marker='o', linewidth=2.5, markersize=8, label='خط الاتجاه')
     
-    ax.set_ylabel('المبيعات', fontsize=9)
-    ax.set_title(title, fontsize=11)
-    ax.legend(loc='upper left', fontsize=8)
+    ax.set_ylabel('المبيعات', fontsize=10)
+    ax.set_title(title, fontsize=12, fontweight='bold')
+    ax.legend(loc='upper left', fontsize=9)
     plt.xticks(rotation=30, ha='right', fontsize=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout(pad=0.5)
+    plt.tight_layout()
     
     img_buffer = BytesIO()
     plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
@@ -385,13 +379,13 @@ def _create_trend_chart_pdf(data, x_col, y_col, title):
 # دوال المخططات الرئيسية
 # ============================================================
 def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = frame.head(10).copy()
+    data = frame.head(12).copy()
     if data.empty or len(data) < 2:
         return _create_fallback_table(title)
     
     img_bytes = _create_bar_chart_pdf(data, "الاسم", "الحالي", title)
     if img_bytes:
-        image = Image(img_bytes, width=16.0 * cm, height=(16.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)
         image.hAlign = "CENTER"
         return image
     
@@ -399,13 +393,13 @@ def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
 
 
 def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = frame.head(8).copy()
+    data = frame.head(10).copy()
     if data.empty or len(data) < 2:
         return _create_fallback_table(title)
     
     img_bytes = _create_pie_chart_pdf(data, "الاسم", "الحالي", title)
     if img_bytes:
-        image = Image(img_bytes, width=14.0 * cm, height=(14.0 * cm) * 250 / 600)
+        image = Image(img_bytes, width=20.0 * cm, height=(20.0 * cm) * 250 / 600)
         image.hAlign = "CENTER"
         return image
     
@@ -413,13 +407,13 @@ def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
 
 
 def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
-    data = _pareto_frame(frame).head(10)
+    data = _pareto_frame(frame).head(12)
     if data.empty or len(data) < 2:
         return _create_fallback_table(title)
     
     img_bytes = _create_pareto_chart_pdf(data, title)
     if img_bytes:
-        image = Image(img_bytes, width=16.0 * cm, height=(16.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)
         image.hAlign = "CENTER"
         return image
     
@@ -433,7 +427,7 @@ def _trend_chart(metrics: dict) -> Image | Table:
     
     img_bytes = _create_trend_chart_pdf(data, 'x', 'y', 'تحليل الاتجاه بين الفترة السابقة والحالية')
     if img_bytes:
-        image = Image(img_bytes, width=16.0 * cm, height=(16.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)
         image.hAlign = "CENTER"
         return image
     
@@ -441,7 +435,6 @@ def _trend_chart(metrics: dict) -> Image | Table:
 
 
 def _create_fallback_table(title: str) -> Table:
-    """إنشاء جدول بديل في حالة فشل المخطط"""
     fallback = Table(
         [[ar(f"⚠️ تعذر إنشاء المخطط")]],
         colWidths=[PAGE_WIDTH - 2.8 * cm],
@@ -637,14 +630,25 @@ def _add_chart_block(story: list, chart_flowables: Iterable[Image | Table]):
 
 
 def _add_dimension_section(story: list, title: str, frame: pd.DataFrame, styles: dict[str, ParagraphStyle]):
+    """إضافة قسم مع جدول ومخططات كل في صفحة"""
+    # الجدول
     _add_table_section(story, title, frame, styles, max_rows=12)
-    _add_chart_block(
-        story,
-        [
-            _bar_chart(frame, f"{title} - Bar Chart"),
-            _pie_chart(frame, f"{title} - Pie Chart"),
-        ],
-    )
+    
+    # مخطط شريطي في صفحة منفصلة
+    story.append(PageBreak())
+    story.append(Spacer(1, 0.5 * cm))
+    story.append(_paragraph(f"📊 {title} - مخطط شريطي", styles["section_title"]))
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(_bar_chart(frame, f"{title} - Bar Chart"))
+    story.append(Spacer(1, 0.2 * cm))
+    
+    # مخطط دائري في صفحة منفصلة
+    story.append(PageBreak())
+    story.append(Spacer(1, 0.5 * cm))
+    story.append(_paragraph(f"📊 {title} - مخطط دائري", styles["section_title"]))
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(_pie_chart(frame, f"{title} - Pie Chart"))
+    story.append(Spacer(1, 0.2 * cm))
 
 
 def _add_toc(story: list, styles: dict[str, ParagraphStyle]):
@@ -900,6 +904,7 @@ def export_to_pdf(
     _add_table_section(story, "مركز ذكاء الأعمال", insights, styles, max_rows=10)
     story.append(PageBreak())
 
+    # أقسام التحليل (كل قسم في صفحة)
     _add_dimension_section(story, "تحليل العملاء", customers, styles)
     story.append(PageBreak())
     _add_dimension_section(story, "تحليل المنتجات", products, styles)
@@ -909,15 +914,25 @@ def export_to_pdf(
     _add_dimension_section(story, "تحليل الفروع", branches, styles)
     story.append(PageBreak())
 
+    # تحليل الاتجاهات
     _add_section(story, "تحليل الاتجاهات", styles)
-    _add_chart_block(story, [_trend_chart(metrics)])
+    story.append(_trend_chart(metrics))
+    story.append(Spacer(1, 0.2 * cm))
     story.append(PageBreak())
 
-    _add_section(story, "تحليل باريتو", styles)
-    story.append(KeepTogether([_pareto_chart(customers, "مخطط باريتو للعملاء"), Spacer(1, 0.2 * cm)]))
-    story.append(_pareto_chart(products, "مخطط باريتو للمنتجات"))
-    story.append(Spacer(1, 0.3 * cm))
+    # تحليل باريتو - العملاء
+    _add_section(story, "تحليل باريتو - العملاء", styles)
+    story.append(_pareto_chart(customers, "مخطط باريتو للعملاء"))
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(PageBreak())
 
+    # تحليل باريتو - المنتجات
+    _add_section(story, "تحليل باريتو - المنتجات", styles)
+    story.append(_pareto_chart(products, "مخطط باريتو للمنتجات"))
+    story.append(Spacer(1, 0.2 * cm))
+    story.append(PageBreak())
+
+    # الاستنتاجات
     _add_section(story, "الاستنتاجات", styles)
     story.append(
         _paragraph(
