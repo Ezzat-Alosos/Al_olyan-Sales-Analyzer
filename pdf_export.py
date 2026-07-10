@@ -43,7 +43,7 @@ except ImportError:
 
 
 PROGRAM_NAME = "تقرير العليان لتحليل المبيعات"
-PROGRAM_SUBTITLE = "Al-osos Professional Sales Analyzer 2026"
+PROGRAM_SUBTITLE = "Al-olyan Professional Sales Analyzer"
 DEVELOPER_NAME = "المهندس المالي : عزت العليان | أتمتة الأعمال بلغة البايثون والذكاء الاصطناعي"
 CONTACT_LINE = "للتواصل : 777884468"
 

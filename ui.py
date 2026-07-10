@@ -231,6 +231,65 @@ def setup_page():
         background: rgba(219, 234, 254, 0.3);
         margin: 15px 0;
     }
+                
+    #===============
+    /* تنسيق بطاقات المؤشرات - تحسين وضوح النصوص */
+    .metric-card {
+        background: white;
+        border-radius: 14px;
+        padding: 16px 12px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-color: #2563eb;
+    }
+
+    .metric-card .metric-icon {
+        font-size: 24px;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .metric-card .metric-label {
+        font-size: 13px;
+        color: #1e293b;  /* 🔥 تغيير من #64748b إلى لون داكن */
+        font-weight: 600;  /* 🔥 زيادة الوزن */
+        margin-bottom: 6px;
+        letter-spacing: 0.3px;  /* 🔥 تحسين القراءة */
+    }
+
+    .metric-card .metric-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f172a;  /* 🔥 لون داكن جداً */
+    }
+
+    /* ألوان مختلفة للمؤشرات (للأرقام فقط) */
+    .metric-blue .metric-value { color: #1e3a8a; }
+    .metric-green .metric-value { color: #059669; }
+    .metric-purple .metric-value { color: #7c3aed; }
+    .metric-orange .metric-value { color: #d97706; }
+    .metric-red .metric-value { color: #dc2626; }
+    .metric-teal .metric-value { color: #0891b2; }
+    .metric-pink .metric-value { color: #db2777; }
+
+    /* 🔥 الأيقونات بألوان واضحة */
+    .metric-blue .metric-icon { color: #1e3a8a; }
+    .metric-green .metric-icon { color: #059669; }
+    .metric-purple .metric-icon { color: #7c3aed; }
+    .metric-orange .metric-icon { color: #d97706; }
+    .metric-red .metric-icon { color: #dc2626; }
+    .metric-teal .metric-icon { color: #0891b2; }
+    .metric-pink .metric-icon { color: #db2777; }
+        #================================
+
+
     </style>
     """, unsafe_allow_html=True)
 
