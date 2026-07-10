@@ -255,40 +255,32 @@ def render_header():
 
 
 def render_modules():
-    """عرض الوحدات التحليلية على شكل كروت"""
+    """عرض الوحدات التحليلية على شكل أزرار كروت"""
     
     modules = [
-        {"id": "👥 العملاء", "icon": "👥", "title": "العملاء", "badge": "تحليل", "class": "card-1"},
-        {"id": "📦 المنتجات", "icon": "📦", "title": "المنتجات", "badge": "تحليل", "class": "card-2"},
-        {"id": "🧑‍💼 المناديب", "icon": "🧑‍💼", "title": "المناديب", "badge": "تحليل", "class": "card-3"},
-        {"id": "🏢 الفروع", "icon": "🏢", "title": "الفروع", "badge": "تحليل", "class": "card-4"},
-        {"id": "📈 تحليل باريتو", "icon": "📈", "title": "باريتو", "badge": "80/20", "class": "card-5"},
-        {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني", "class": "card-6"},
+        {"id": "👥 العملاء", "icon": "👥", "title": "العملاء", "badge": "تحليل"},
+        {"id": "📦 المنتجات", "icon": "📦", "title": "المنتجات", "badge": "تحليل"},
+        {"id": "🧑‍💼 المناديب", "icon": "🧑‍💼", "title": "المناديب", "badge": "تحليل"},
+        {"id": "🏢 الفروع", "icon": "🏢", "title": "الفروع", "badge": "تحليل"},
+        {"id": "📈 تحليل باريتو", "icon": "📈", "title": "باريتو", "badge": "80/20"},
+        {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني"},
     ]
     
-    cards_html = '<div class="cards-container">'
-    for module in modules:
-        active_class = "active" if st.session_state.page == module["id"] else ""
-        cards_html += f'''
-        <div class="card {module['class']} {active_class}">
-            <span class="icon">{module['icon']}</span>
-            <p class="title">{module['title']}</p>
-            <span class="badge">{module['badge']}</span>
-        </div>
-        '''
-    cards_html += '</div>'
+    # استخدام 3 أعمدة لعرض الكروت
+    cols = st.columns(3, gap="small")
     
-    st.markdown(cards_html, unsafe_allow_html=True)
-    
-    # أزرار (مخفية للتفاعل)
-    cols = st.columns(len(modules), gap="small")
     for i, module in enumerate(modules):
-        with cols[i]:
+        with cols[i % 3]:
+            # تحديد نوع الزر
+            is_active = st.session_state.page == module["id"]
+            btn_type = "primary" if is_active else "secondary"
+            
+            # عرض الزر مع أيقونة ونص
             if st.button(
-                module["id"],
+                f"{module['icon']}\n{module['title']}\n{module['badge']}",
                 key=f"btn_{module['id']}",
                 use_container_width=True,
-                type="primary" if st.session_state.page == module["id"] else "secondary",
+                type=btn_type,
                 help=f"تحليل {module['title']}",
             ):
                 st.session_state.page = module["id"]
