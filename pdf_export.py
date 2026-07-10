@@ -330,7 +330,7 @@ def _create_pareto_chart_pdf(data, title):
     
     ax2 = ax.twinx()
     ax2.plot(x, cum_percentages, color='#dc2626', marker='o', linewidth=2.5, markersize=6)
-    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=2, linewidth=2)
+    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.8, linewidth=2)
     ax2.text(len(x)-1, 84, '80%', color='#dc2626', fontsize=9, fontweight='bold', ha='right')
     ax2.set_ylabel('النسبة التراكمية %', color='#dc2626', fontsize=10, fontweight='bold')
     ax2.tick_params(axis='y', labelcolor='#dc2626')

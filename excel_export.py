@@ -147,7 +147,7 @@ def _create_pareto_chart(data, title):
     y = data['الحالي'].tolist()
     
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
-    bars = ax.bar(x, y, color=colors, alpha=2)
+    bars = ax.bar(x, y, color=colors, alpha=0.8)
     ax.set_ylabel('المبيعات', color='blue', fontsize=9)
     ax.tick_params(axis='y', labelcolor='blue')
     
