@@ -135,35 +135,94 @@ def setup_page():
     .card-6 .icon { color: #dc2626; }
     
     /* ============================================================
-    تنسيق بطاقات المؤشرات
+    تنسيق بطاقات المؤشرات (Metrics) - محسّن
     ============================================================ */
-    div[data-testid="metric-container"] {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 15px;
-        padding: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.05);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-    div[data-testid="metric-container"]:hover {
-        box-shadow: 0 4px 15px rgba(0,0,0,.1);
-        transform: translateY(-2px);
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin: 10px 0 20px 0;
+        direction: rtl;
     }
     
-    /* تنسيق الأزرار */
+    .metric-card {
+        background: white;
+        border-radius: 14px;
+        padding: 16px 12px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        border-color: #2563eb;
+    }
+    
+    .metric-card .metric-icon {
+        font-size: 22px;
+        display: block;
+        margin-bottom: 4px;
+    }
+    
+    .metric-card .metric-label {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+    
+    .metric-card .metric-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    
+    .metric-card .metric-change {
+        font-size: 11px;
+        font-weight: 500;
+        margin-top: 4px;
+    }
+    
+    .metric-card .metric-change.positive {
+        color: #059669;
+    }
+    
+    .metric-card .metric-change.negative {
+        color: #dc2626;
+    }
+    
+    /* ألوان مختلفة للمؤشرات */
+    .metric-blue .metric-value { color: #1e3a8a; }
+    .metric-blue .metric-icon { color: #1e3a8a; }
+    .metric-green .metric-value { color: #059669; }
+    .metric-green .metric-icon { color: #059669; }
+    .metric-purple .metric-value { color: #7c3aed; }
+    .metric-purple .metric-icon { color: #7c3aed; }
+    .metric-orange .metric-value { color: #d97706; }
+    .metric-orange .metric-icon { color: #d97706; }
+    .metric-red .metric-value { color: #dc2626; }
+    .metric-red .metric-icon { color: #dc2626; }
+    .metric-teal .metric-value { color: #0891b2; }
+    .metric-teal .metric-icon { color: #0891b2; }
+    .metric-pink .metric-value { color: #db2777; }
+    .metric-pink .metric-icon { color: #db2777; }
+    
+    /* ============================================================
+    تنسيق باقي العناصر
+    ============================================================ */
     .stButton button {
         width: 100%;
         border-radius: 10px;
         font-weight: 500;
     }
     
-    /* تنسيق الرسوم البيانية */
     .js-plotly-plot {
         margin: 0 auto;
     }
     
-    /* تنسيق رافع الملف */
     .upload-area {
         border: 2px dashed #93c5fd;
         border-radius: 15px;
@@ -207,12 +266,11 @@ def render_modules():
         {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني", "class": "card-6"},
     ]
     
-    # استخدام HTML لعرض الكروت
     cards_html = '<div class="cards-container">'
     for module in modules:
         active_class = "active" if st.session_state.page == module["id"] else ""
         cards_html += f'''
-        <div class="card {module['class']} {active_class}" onclick="document.querySelector('[data-testid=\"stButton\"] button[data-page=\"{module['id']}\"]').click()">
+        <div class="card {module['class']} {active_class}">
             <span class="icon">{module['icon']}</span>
             <p class="title">{module['title']}</p>
             <span class="badge">{module['badge']}</span>
@@ -220,10 +278,9 @@ def render_modules():
         '''
     cards_html += '</div>'
     
-    # عرض الكروت
     st.markdown(cards_html, unsafe_allow_html=True)
     
-    # أزرار مخفية (للتفاعل)
+    # أزرار (مخفية للتفاعل)
     cols = st.columns(len(modules), gap="small")
     for i, module in enumerate(modules):
         with cols[i]:
@@ -261,25 +318,90 @@ def render_filters(years):
 
 
 def render_dashboard(metrics):
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("💰 إجمالي المبيعات الحالية", f"{metrics['current_total']:,.2f}")
-    with col2:
-        st.metric("💰 إجمالي المبيعات السابقة", f"{metrics['previous_total']:,.2f}")
-    with col3:
-        st.metric("📊 إجمالي الفرق", f"{metrics['difference']:,.2f}")
-    with col4:
-        st.metric("📈 نسبة النمو", f"{metrics['growth']:,.2f}%")
+    """عرض المؤشرات على شكل كروت منظمة"""
     
+    # الصف الأول - مؤشرات المبيعات
     col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        st.metric("👥 عدد العملاء", metrics["customers_count"])
+        st.markdown(f'''
+        <div class="metric-card metric-blue">
+            <span class="metric-icon">💰</span>
+            <div class="metric-label">إجمالي المبيعات الحالية</div>
+            <div class="metric-value">{metrics['current_total']:,.2f}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
     with col2:
-        st.metric("📦 عدد المنتجات", metrics["products_count"])
+        st.markdown(f'''
+        <div class="metric-card metric-purple">
+            <span class="metric-icon">📊</span>
+            <div class="metric-label">إجمالي المبيعات السابقة</div>
+            <div class="metric-value">{metrics['previous_total']:,.2f}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
     with col3:
-        st.metric("🧑‍💼 عدد المناديب", metrics["representatives_count"])
+        # تغيير اللون حسب الفرق (إيجابي أو سلبي)
+        diff_class = "metric-green" if metrics['difference'] >= 0 else "metric-red"
+        diff_icon = "📈" if metrics['difference'] >= 0 else "📉"
+        st.markdown(f'''
+        <div class="metric-card {diff_class}">
+            <span class="metric-icon">{diff_icon}</span>
+            <div class="metric-label">إجمالي الفرق</div>
+            <div class="metric-value">{metrics['difference']:,.2f}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
     with col4:
-        st.metric("🏢 عدد الفروع", metrics["branches_count"])
+        # تغيير اللون حسب نسبة النمو
+        growth_class = "metric-green" if metrics['growth'] >= 0 else "metric-red"
+        st.markdown(f'''
+        <div class="metric-card {growth_class}">
+            <span class="metric-icon">📈</span>
+            <div class="metric-label">نسبة النمو</div>
+            <div class="metric-value">{metrics['growth']:.2f}%</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    # الصف الثاني - مؤشرات العد
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f'''
+        <div class="metric-card metric-teal">
+            <span class="metric-icon">👥</span>
+            <div class="metric-label">عدد العملاء</div>
+            <div class="metric-value">{metrics['customers_count']:,}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f'''
+        <div class="metric-card metric-orange">
+            <span class="metric-icon">📦</span>
+            <div class="metric-label">عدد المنتجات</div>
+            <div class="metric-value">{metrics['products_count']:,}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f'''
+        <div class="metric-card metric-pink">
+            <span class="metric-icon">🧑‍💼</span>
+            <div class="metric-label">عدد المناديب</div>
+            <div class="metric-value">{metrics['representatives_count']:,}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f'''
+        <div class="metric-card metric-purple">
+            <span class="metric-icon">🏢</span>
+            <div class="metric-label">عدد الفروع</div>
+            <div class="metric-value">{metrics['branches_count']:,}</div>
+        </div>
+        ''', unsafe_allow_html=True)
 
 
 def render_analysis_table(df, key):
