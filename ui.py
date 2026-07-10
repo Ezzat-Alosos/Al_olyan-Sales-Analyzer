@@ -1,7 +1,7 @@
 ﻿import streamlit as st
 
 st.set_page_config(
-    page_title="العصعص لتحليل المبيعات",
+    page_title="العليان لتحليل المبيعات",
     page_icon="📊",
     layout="wide"
 )
@@ -298,7 +298,7 @@ def render_header():
     st.markdown(
         """
         <div class="main-header">
-            <h1>📊 نظام العصعص لتحليل المبيعات</h1>
+            <h1>📊 نظام العليان لتحليل المبيعات</h1>
         </div>
         """,
         unsafe_allow_html=True
