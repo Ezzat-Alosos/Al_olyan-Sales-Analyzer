@@ -298,7 +298,7 @@ def render_header():
     st.markdown(
         """
         <div class="main-header">
-            <h1>📊 نظام العليان لتحليل المبيعات</h1>
+            <h1>📊 العليان لتحليل المبيعات</h1>
         </div>
         """,
         unsafe_allow_html=True
