@@ -289,36 +289,6 @@ def setup_page():
     .metric-pink .metric-icon { color: #db2777; }
         #================================
 
-    
-                
-    /* تنسيق الكروت الجديد */
-    .module-card {
-        background: white;
-        border-radius: 14px;
-        padding: 18px 12px;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border: 2px solid #e5e7eb;
-        transition: all 0.3s ease;
-        direction: rtl;
-    }
-
-    .module-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        border-color: #2563eb;
-    }
-
-    .module-card.active-card {
-        border-color: #2563eb;
-        background: #eff6ff;
-        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15);
-    }
-
-    /* إخفاء الأزرار الحقيقية */
-    .stButton button[data-page] {
-        display: none;
-    }
 
 
 
