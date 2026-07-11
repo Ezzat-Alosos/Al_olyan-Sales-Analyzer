@@ -316,7 +316,7 @@ def render_header():
 
 
 def render_modules():
-    """عرض الوحدات التحليلية على شكل أزرار كروت"""
+    """عرض الوحدات التحليلية"""
     
     modules = [
         {"id": "👥 العملاء", "icon": "👥", "title": "العملاء", "badge": "تحليل"},
@@ -327,7 +327,6 @@ def render_modules():
         {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني"},
     ]
     
-    # استخدام 3 أعمدة لعرض الكروت
     cols = st.columns(3, gap="small")
     
     for i, module in enumerate(modules):
@@ -335,13 +334,12 @@ def render_modules():
             is_active = st.session_state.page == module["id"]
             btn_type = "primary" if is_active else "secondary"
             
-            # 🔥 تعديل: عرض النص بشكل صحيح (الأيقونة + العنوان + الشارة)
+            # عرض الزر مع النص الصحيح
             if st.button(
-                f"{module['icon']}\n{module['title']}\n{module['badge']}",
+                f"{module['icon']}\nتحليل {module['title']}\n{module['badge']}",
                 key=f"btn_{module['id']}",
                 use_container_width=True,
                 type=btn_type,
-                help=f"تحليل {module['title']}",
             ):
                 st.session_state.page = module["id"]
                 st.rerun()
