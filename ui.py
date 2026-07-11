@@ -316,7 +316,7 @@ def render_header():
 
 
 def render_modules():
-    """عرض الوحدات التحليلية على شكل كروت"""
+    """عرض الوحدات التحليلية على شكل أزرار كروت"""
     
     modules = [
         {"id": "👥 العملاء", "icon": "👥", "title": "العملاء", "badge": "تحليل"},
@@ -327,30 +327,20 @@ def render_modules():
         {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني"},
     ]
     
+    # استخدام 3 أعمدة لعرض الكروت
     cols = st.columns(3, gap="small")
     
     for i, module in enumerate(modules):
         with cols[i % 3]:
             is_active = st.session_state.page == module["id"]
+            btn_type = "primary" if is_active else "secondary"
             
-            # استخدام HTML للتحكم في اتجاه النص
-            active_class = "active-card" if is_active else ""
-            st.markdown(f"""
-            <div class="module-card {active_class}" 
-                 onclick="document.querySelector('[data-testid=\"stButton\"] button[data-page=\"{module['id']}\"]').click()"
-                 style="cursor:pointer; text-align:center; direction:rtl;">
-                <div style="font-size:32px; margin-bottom:5px;">{module['icon']}</div>
-                <div style="font-size:14px; font-weight:600; color:#1e293b;">{module['title']}</div>
-                <div style="font-size:10px; color:#2563eb; background:#dbeafe; padding:2px 12px; border-radius:20px; display:inline-block; margin-top:4px;">{module['badge']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # زر مخفي للتفاعل
+            # 🔥 تعديل: عرض النص بشكل صحيح (الأيقونة + العنوان + الشارة)
             if st.button(
-                module["id"],
+                f"{module['icon']}\n{module['title']}\n{module['badge']}",
                 key=f"btn_{module['id']}",
                 use_container_width=True,
-                type="primary" if is_active else "secondary",
+                type=btn_type,
                 help=f"تحليل {module['title']}",
             ):
                 st.session_state.page = module["id"]
