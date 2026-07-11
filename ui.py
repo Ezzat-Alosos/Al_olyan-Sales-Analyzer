@@ -289,6 +289,38 @@ def setup_page():
     .metric-pink .metric-icon { color: #db2777; }
         #================================
 
+    
+                
+    /* تنسيق الكروت الجديد */
+    .module-card {
+        background: white;
+        border-radius: 14px;
+        padding: 18px 12px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        border: 2px solid #e5e7eb;
+        transition: all 0.3s ease;
+        direction: rtl;
+    }
+
+    .module-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        border-color: #2563eb;
+    }
+
+    .module-card.active-card {
+        border-color: #2563eb;
+        background: #eff6ff;
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.15);
+    }
+
+    /* إخفاء الأزرار الحقيقية */
+    .stButton button[data-page] {
+        display: none;
+    }
+
+
 
     </style>
     """, unsafe_allow_html=True)
@@ -314,7 +346,7 @@ def render_header():
 
 
 def render_modules():
-    """عرض الوحدات التحليلية على شكل أزرار كروت"""
+    """عرض الوحدات التحليلية على شكل كروت"""
     
     modules = [
         {"id": "👥 العملاء", "icon": "👥", "title": "العملاء", "badge": "تحليل"},
@@ -325,21 +357,30 @@ def render_modules():
         {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني"},
     ]
     
-    # استخدام 3 أعمدة لعرض الكروت
     cols = st.columns(3, gap="small")
     
     for i, module in enumerate(modules):
         with cols[i % 3]:
-            # تحديد نوع الزر
             is_active = st.session_state.page == module["id"]
-            btn_type = "primary" if is_active else "secondary"
             
-            # عرض الزر مع أيقونة ونص
+            # استخدام HTML للتحكم في اتجاه النص
+            active_class = "active-card" if is_active else ""
+            st.markdown(f"""
+            <div class="module-card {active_class}" 
+                 onclick="document.querySelector('[data-testid=\"stButton\"] button[data-page=\"{module['id']}\"]').click()"
+                 style="cursor:pointer; text-align:center; direction:rtl;">
+                <div style="font-size:32px; margin-bottom:5px;">{module['icon']}</div>
+                <div style="font-size:14px; font-weight:600; color:#1e293b;">{module['title']}</div>
+                <div style="font-size:10px; color:#2563eb; background:#dbeafe; padding:2px 12px; border-radius:20px; display:inline-block; margin-top:4px;">{module['badge']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # زر مخفي للتفاعل
             if st.button(
-                f"{module['icon']}\n{module['title']}\n{module['badge']}",
+                module["id"],
                 key=f"btn_{module['id']}",
                 use_container_width=True,
-                type=btn_type,
+                type="primary" if is_active else "secondary",
                 help=f"تحليل {module['title']}",
             ):
                 st.session_state.page = module["id"]
