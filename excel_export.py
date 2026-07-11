@@ -59,14 +59,14 @@ def _shorten_text(text, max_len=10):
 
 
 def _create_bar_chart(data, x_col, y_col, title):
-    """إنشاء مخطط شريطي - المبالغ بشكل طولي (عمودي)"""
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    """إنشاء مخطط شريطي - دقة عالية"""
+    fig, ax = plt.subplots(figsize=(9, 5), dpi=150)  # 🔥 زيادة الحجم والدقة
     
     x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
     y = data[y_col].tolist()
     
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
-    bars = ax.bar(x, y, color=colors)
+    bars = ax.bar(x, y, color=colors, edgecolor='darkblue', linewidth=0.5)
     
     max_y = max(y) if y else 1
     for bar, val in zip(bars, y):
@@ -76,27 +76,32 @@ def _create_bar_chart(data, x_col, y_col, title):
             f'{val:,.0f}',
             ha='center',
             va='bottom',
-            fontsize=7,
+            fontsize=8,
+            fontweight='bold',
             rotation=0
         )
     
-    ax.set_ylabel('المبيعات', fontsize=9)
-    ax.set_title(title, fontsize=11)
-    plt.xticks(rotation=45, ha='right', fontsize=7)
+    ax.set_ylabel('المبيعات', fontsize=10, fontweight='bold')
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
+    plt.xticks(rotation=45, ha='right', fontsize=8)
+    plt.yticks(fontsize=8)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    plt.tight_layout(pad=0.5)
+    # 🔥 إضافة شبكة خلفية خفيفة
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    
+    plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
     img_buffer.seek(0)
     plt.close()
     return img_buffer
 
 
 def _create_pie_chart(data, x_col, y_col, title):
-    """إنشاء مخطط دائري - دائري وليس بيضاوي"""
-    fig, ax = plt.subplots(figsize=(6, 5))
+    """إنشاء مخطط دائري - دقة عالية"""
+    fig, ax = plt.subplots(figsize=(7, 6), dpi=150)  # 🔥 زيادة الحجم والدقة
     
     data = data.sort_values(y_col, ascending=False)
     labels = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
@@ -115,27 +120,34 @@ def _create_pie_chart(data, x_col, y_col, title):
             autopct=autopct_format,
             colors=colors,
             startangle=90,
-            pctdistance=0.75,
-            textprops={'fontsize': 7},
-            wedgeprops={'edgecolor': 'white', 'linewidth': 0.5}
+            pctdistance=0.78,
+            textprops={'fontsize': 9, 'fontweight': 'bold'},
+            wedgeprops={'edgecolor': 'white', 'linewidth': 1.5}
         )
-        ax.set_title(title, fontsize=11)
+        ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
         
         for text in texts:
-            text.set_fontsize(7)
+            text.set_fontsize(9)
+            text.set_fontweight('bold')
         for autotext in autotexts:
-            autotext.set_fontsize(7)
+            autotext.set_fontsize(9)
+            autotext.set_fontweight('bold')
             autotext.set_color('white')
         
         ax.set_aspect('equal')
     
-    plt.tight_layout(pad=0.3)
+    plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
     img_buffer.seek(0)
     plt.close()
     return img_buffer
+
+
+
+
+
 
 
 def _create_pareto_chart(data, title):

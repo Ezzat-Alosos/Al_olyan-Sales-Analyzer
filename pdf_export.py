@@ -230,14 +230,14 @@ def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
 # دوال إنشاء المخططات
 # ============================================================
 def _create_bar_chart_pdf(data, x_col, y_col, title):
-    """إنشاء مخطط شريطي للـ PDF"""
-    fig, ax = plt.subplots(figsize=(10, 5))
+    """إنشاء مخطط شريطي للـ PDF - دقة عالية"""
+    fig, ax = plt.subplots(figsize=(10, 5.5), dpi=150)  # 🔥 زيادة الحجم والدقة
     
     x = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
     y = data[y_col].tolist()
     
-    colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
-    bars = ax.bar(x, y, color=colors)
+    colors_list = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
+    bars = ax.bar(x, y, color=colors_list, edgecolor='darkblue', linewidth=0.5)
     
     max_y = max(y) if y else 1
     for bar, val in zip(bars, y):
@@ -247,26 +247,32 @@ def _create_bar_chart_pdf(data, x_col, y_col, title):
             f'{val:,.0f}',
             ha='center',
             va='bottom',
-            fontsize=8
+            fontsize=9,  # 🔥 تكبير الخط
+            fontweight='bold',  # 🔥 جعل الخط سميكاً
+            rotation=0
         )
     
-    ax.set_ylabel('المبيعات', fontsize=10)
-    ax.set_title(title, fontsize=12, fontweight='bold')
-    plt.xticks(rotation=45, ha='right', fontsize=8)
+    ax.set_ylabel('المبيعات', fontsize=11, fontweight='bold')
+    ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
+    plt.xticks(rotation=45, ha='right', fontsize=9)
+    plt.yticks(fontsize=9)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    
+    # 🔥 إضافة شبكة خلفية خفيفة
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
     
     plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
     img_buffer.seek(0)
     plt.close()
     return img_buffer
 
 
 def _create_pie_chart_pdf(data, x_col, y_col, title):
-    """إنشاء مخطط دائري للـ PDF"""
-    fig, ax = plt.subplots(figsize=(8, 6))
+    """إنشاء مخطط دائري للـ PDF - دقة عالية"""
+    fig, ax = plt.subplots(figsize=(8, 6.5), dpi=150)  # 🔥 زيادة الحجم والدقة
     
     data = data.sort_values(y_col, ascending=False)
     labels = data[x_col].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
@@ -274,7 +280,7 @@ def _create_pie_chart_pdf(data, x_col, y_col, title):
     total = sum(values)
     
     if total > 0:
-        colors = plt.cm.Blues(np.linspace(0.3, 0.9, len(labels)))[::-1]
+        colors_list = plt.cm.Blues(np.linspace(0.3, 0.9, len(labels)))[::-1]
         
         def autopct_format(pct):
             return f'{pct:.1f}%' if pct > 3 else ''
@@ -283,18 +289,20 @@ def _create_pie_chart_pdf(data, x_col, y_col, title):
             values,
             labels=labels,
             autopct=autopct_format,
-            colors=colors,
+            colors=colors_list,
             startangle=90,
-            pctdistance=0.75,
-            textprops={'fontsize': 8},
-            wedgeprops={'edgecolor': 'white', 'linewidth': 0.5}
+            pctdistance=0.78,
+            textprops={'fontsize': 9, 'fontweight': 'bold'},  # 🔥 تكبير الخط
+            wedgeprops={'edgecolor': 'white', 'linewidth': 1.5}  # 🔥 زيادة سماكة الحدود
         )
-        ax.set_title(title, fontsize=12, fontweight='bold')
+        ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
         
         for text in texts:
-            text.set_fontsize(8)
+            text.set_fontsize(9)
+            text.set_fontweight('bold')
         for autotext in autotexts:
-            autotext.set_fontsize(8)
+            autotext.set_fontsize(9)
+            autotext.set_fontweight('bold')
             autotext.set_color('white')
         
         ax.set_aspect('equal')
@@ -302,24 +310,24 @@ def _create_pie_chart_pdf(data, x_col, y_col, title):
     plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
     img_buffer.seek(0)
     plt.close()
     return img_buffer
 
 
 def _create_pareto_chart_pdf(data, title):
-    """إنشاء مخطط باريتو للـ PDF"""
-    fig, ax = plt.subplots(figsize=(10, 5))
+    """إنشاء مخطط باريتو للـ PDF - دقة عالية"""
+    fig, ax = plt.subplots(figsize=(10, 5.5), dpi=150)  # 🔥 زيادة الحجم والدقة
     
     data = data.sort_values('الحالي', ascending=False)
     x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
     y = data['الحالي'].tolist()
     
-    colors = plt.cm.Blues(np.linspace(0.5, 0.95, len(x)))[::-1]
-    bars = ax.bar(x, y, color=colors, alpha=0.9, edgecolor='darkblue', linewidth=0.5)
-    ax.set_ylabel('المبيعات', color='darkblue', fontsize=10, fontweight='bold')
-    ax.tick_params(axis='y', labelcolor='darkblue')
+    colors_list = plt.cm.Blues(np.linspace(0.5, 0.95, len(x)))[::-1]
+    bars = ax.bar(x, y, color=colors_list, alpha=0.85, edgecolor='darkblue', linewidth=0.8)
+    ax.set_ylabel('المبيعات', color='darkblue', fontsize=11, fontweight='bold')
+    ax.tick_params(axis='y', labelcolor='darkblue', labelsize=9)
     
     total = sum(y)
     cumsum = 0
@@ -329,47 +337,72 @@ def _create_pareto_chart_pdf(data, title):
         cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
     
     ax2 = ax.twinx()
-    ax2.plot(x, cum_percentages, color='#dc2626', marker='o', linewidth=2.5, markersize=6)
-    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.8, linewidth=2)
-    ax2.text(len(x)-1, 84, '80%', color='#dc2626', fontsize=9, fontweight='bold', ha='right')
-    ax2.set_ylabel('النسبة التراكمية %', color='#dc2626', fontsize=10, fontweight='bold')
-    ax2.tick_params(axis='y', labelcolor='#dc2626')
+    ax2.plot(x, cum_percentages, color='#dc2626', marker='o', linewidth=2.5, markersize=7,
+             markeredgecolor='white', markeredgewidth=0.5)
+    
+    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.8, linewidth=2.5)  # 🔥 زيادة السماكة
+    ax2.text(len(x)-1, 84, '80%', color='#dc2626', fontsize=10, fontweight='bold', ha='right')
+    
+    ax2.set_ylabel('النسبة التراكمية %', color='#dc2626', fontsize=11, fontweight='bold')
+    ax2.tick_params(axis='y', labelcolor='#dc2626', labelsize=9)
     ax2.set_ylim(0, 105)
     
-    ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
-    plt.xticks(rotation=45, ha='right', fontsize=8)
+    # 🔥 إضافة القيم فوق الأعمدة
+    max_y = max(y) if y else 1
+    for bar, val in zip(bars, y):
+        ax.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height() + max_y * 0.015,
+            f'{val/1e6:.1f}M',
+            ha='center',
+            va='bottom',
+            fontsize=7,
+            fontweight='bold',
+            rotation=0
+        )
+    
+    ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
+    plt.xticks(rotation=45, ha='right', fontsize=9)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    
+    # 🔥 إضافة شبكة خلفية خفيفة
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
     
     plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
     img_buffer.seek(0)
     plt.close()
     return img_buffer
 
 
 def _create_trend_chart_pdf(data, x_col, y_col, title):
-    """إنشاء مخطط اتجاهات للـ PDF"""
-    fig, ax = plt.subplots(figsize=(10, 5))
+    """إنشاء مخطط اتجاهات للـ PDF - دقة عالية"""
+    fig, ax = plt.subplots(figsize=(10, 5.5), dpi=150)  # 🔥 زيادة الحجم والدقة
     
     x = data[x_col].astype(str).tolist()
     y = data[y_col].tolist()
     
-    colors = plt.cm.Blues(np.linspace(0.4, 0.8, len(x)))
-    ax.bar(x, y, color=colors, alpha=0.7, label='المبيعات')
-    ax.plot(x, y, color='red', marker='o', linewidth=2.5, markersize=8, label='خط الاتجاه')
+    colors_list = plt.cm.Blues(np.linspace(0.4, 0.8, len(x)))
+    ax.bar(x, y, color=colors_list, alpha=0.8, edgecolor='darkblue', linewidth=0.5, label='المبيعات')
+    ax.plot(x, y, color='#dc2626', marker='o', linewidth=3, markersize=10,  # 🔥 تكبير النقاط
+            markeredgecolor='white', markeredgewidth=1, label='خط الاتجاه')
     
-    ax.set_ylabel('المبيعات', fontsize=10)
-    ax.set_title(title, fontsize=12, fontweight='bold')
-    ax.legend(loc='upper left', fontsize=9)
-    plt.xticks(rotation=30, ha='right', fontsize=8)
+    ax.set_ylabel('المبيعات', fontsize=11, fontweight='bold')
+    ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
+    ax.legend(loc='upper left', fontsize=10, framealpha=0.9)
+    plt.xticks(rotation=30, ha='right', fontsize=9)
+    plt.yticks(fontsize=9)
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    
+    # 🔥 إضافة شبكة خلفية خفيفة
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
     
     plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
     img_buffer.seek(0)
     plt.close()
     return img_buffer
@@ -385,7 +418,7 @@ def _bar_chart(frame: pd.DataFrame, title: str) -> Image | Table:
     
     img_bytes = _create_bar_chart_pdf(data, "الاسم", "الحالي", title)
     if img_bytes:
-        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)  # 🔥 تكبير الصورة
         image.hAlign = "CENTER"
         return image
     
@@ -399,7 +432,7 @@ def _pie_chart(frame: pd.DataFrame, title: str) -> Image | Table:
     
     img_bytes = _create_pie_chart_pdf(data, "الاسم", "الحالي", title)
     if img_bytes:
-        image = Image(img_bytes, width=20.0 * cm, height=(20.0 * cm) * 250 / 600)
+        image = Image(img_bytes, width=20.0 * cm, height=(20.0 * cm) * 250 / 600)  # 🔥 تكبير الصورة
         image.hAlign = "CENTER"
         return image
     
@@ -413,11 +446,14 @@ def _pareto_chart(frame: pd.DataFrame, title: str) -> Image | Table:
     
     img_bytes = _create_pareto_chart_pdf(data, title)
     if img_bytes:
-        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)
+        image = Image(img_bytes, width=22.0 * cm, height=(22.0 * cm) * 250 / 700)  # 🔥 تكبير الصورة
         image.hAlign = "CENTER"
         return image
     
     return _create_fallback_table(title)
+
+
+
 
 
 def _trend_chart(metrics: dict) -> Image | Table:
