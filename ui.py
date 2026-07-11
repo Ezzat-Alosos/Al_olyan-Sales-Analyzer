@@ -316,18 +316,17 @@ def render_header():
 
 
 def render_modules():
-    """عرض الوحدات التحليلية على شكل أزرار كروت"""
+    """عرض الوحدات التحليلية على شكل أزرار"""
     
     modules = [
-        {"id": "👥 العملاء", "icon": "👥", "title": "العملاء", "badge": "تحليل"},
-        {"id": "📦 المنتجات", "icon": "📦", "title": "المنتجات", "badge": "تحليل"},
-        {"id": "🧑‍💼 المناديب", "icon": "🧑‍💼", "title": "المناديب", "badge": "تحليل"},
-        {"id": "🏢 الفروع", "icon": "🏢", "title": "الفروع", "badge": "تحليل"},
-        {"id": "📈 تحليل باريتو", "icon": "📈", "title": "باريتو", "badge": "80/20"},
-        {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات", "badge": "زمني"},
+        {"id": "👥 العملاء", "icon": "👥", "title": "العملاء"},
+        {"id": "📦 المنتجات", "icon": "📦", "title": "المنتجات"},
+        {"id": "🧑‍💼 المناديب", "icon": "🧑‍💼", "title": "المناديب"},
+        {"id": "🏢 الفروع", "icon": "🏢", "title": "الفروع"},
+        {"id": "📈 تحليل باريتو", "icon": "📈", "title": "باريتو"},
+        {"id": "📉 الاتجاهات", "icon": "📉", "title": "الاتجاهات"},
     ]
     
-    # استخدام 3 أعمدة لعرض الكروت
     cols = st.columns(3, gap="small")
     
     for i, module in enumerate(modules):
@@ -335,16 +334,12 @@ def render_modules():
             is_active = st.session_state.page == module["id"]
             btn_type = "primary" if is_active else "secondary"
             
-            # 🔥 التغيير: وضع "تحليل" قبل اسم الوحدة
-            # مثلاً: "تحليل العملاء" بدلاً من "العملاء تحليل"
-            label = f"{module['icon']}\nتحليل {module['title']}\n{module['badge']}"
-            
+            # عرض الزر مع "تحليل" مرة واحدة فقط
             if st.button(
-                label,
+                f"{module['icon']}\nتحليل {module['title']}",
                 key=f"btn_{module['id']}",
                 use_container_width=True,
                 type=btn_type,
-                help=f"تحليل {module['title']}",
             ):
                 st.session_state.page = module["id"]
                 st.rerun()
