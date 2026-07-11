@@ -133,7 +133,7 @@ def main():
 
     with st.sidebar:
         st.image("logo.png", width=180)
-        st.markdown("## معنا رحلتك في التحليل والأتمتة أكثر دقة وكفاءة")
+        st.markdown("## معنا رحلتك في الأتمتة أكثر كفاءة")
         st.success("جاهز لتحليل بيانات المبيعات")
         st.markdown("---")
         st.markdown("""
