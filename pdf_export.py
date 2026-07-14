@@ -317,11 +317,12 @@ def _create_pie_chart_pdf(data, x_col, y_col, title):
 
 
 def _create_pareto_chart_pdf(data, title):
-    """إنشاء مخطط باريتو للـ PDF - دقة عالية"""
-    fig, ax = plt.subplots(figsize=(10, 5.5), dpi=150)  # 🔥 زيادة الحجم والدقة
+    """إنشاء مخطط باريتو للـ PDF - مع تدوير النصوص لتجنب التداخل"""
+    fig, ax = plt.subplots(figsize=(10, 5.5), dpi=150)
     
     data = data.sort_values('الحالي', ascending=False)
-    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 10)).tolist()
+    # استخدام max_len=12 للحفاظ على الأسماء كاملة مع تقصير بسيط
+    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
     y = data['الحالي'].tolist()
     
     colors_list = plt.cm.Blues(np.linspace(0.5, 0.95, len(x)))[::-1]
@@ -340,14 +341,14 @@ def _create_pareto_chart_pdf(data, title):
     ax2.plot(x, cum_percentages, color='#dc2626', marker='o', linewidth=2.5, markersize=7,
              markeredgecolor='white', markeredgewidth=0.5)
     
-    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.8, linewidth=2.5)  # 🔥 زيادة السماكة
+    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.8, linewidth=2.5)
     ax2.text(len(x)-1, 84, '80%', color='#dc2626', fontsize=10, fontweight='bold', ha='right')
     
     ax2.set_ylabel('النسبة التراكمية %', color='#dc2626', fontsize=11, fontweight='bold')
     ax2.tick_params(axis='y', labelcolor='#dc2626', labelsize=9)
     ax2.set_ylim(0, 105)
     
-    # 🔥 إضافة القيم فوق الأعمدة
+    # إضافة القيم فوق الأعمدة
     max_y = max(y) if y else 1
     for bar, val in zip(bars, y):
         ax.text(
@@ -362,16 +363,24 @@ def _create_pareto_chart_pdf(data, title):
         )
     
     ax.set_title(title, fontsize=13, fontweight='bold', pad=15)
-    plt.xticks(rotation=45, ha='right', fontsize=9)
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     
-    # 🔥 إضافة شبكة خلفية خفيفة
+    # ============================================================
+    # 🔥 التعديل المهم: تدوير النصوص بزاوية 45 درجة
+    # ============================================================
+    plt.xticks(rotation=45, ha='right', fontsize=8)
+    
+    # ============================================================
+    # 🔥 زيادة المسافة السفلية لتظهر النصوص كاملة
+    # ============================================================
+    plt.subplots_adjust(bottom=0.2)
+    
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
     ax.grid(axis='y', alpha=0.3, linestyle='--')
     
     plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')  # 🔥 زيادة dpi
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')
     img_buffer.seek(0)
     plt.close()
     return img_buffer

@@ -151,17 +151,18 @@ def _create_pie_chart(data, x_col, y_col, title):
 
 
 def _create_pareto_chart(data, title):
-    """إنشاء مخطط باريتو"""
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    """إنشاء مخطط باريتو - مع تدوير النصوص لتجنب التداخل"""
+    fig, ax = plt.subplots(figsize=(9, 5.5), dpi=150)  # زيادة الحجم قليلاً
     
     data = data.sort_values('الحالي', ascending=False)
-    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 8)).tolist()
+    # استخدام max_len=12 للحفاظ على الأسماء كاملة مع تقصير بسيط
+    x = data['الاسم'].astype(str).apply(lambda t: _shorten_text(t, 12)).tolist()
     y = data['الحالي'].tolist()
     
     colors = plt.cm.Blues(np.linspace(0.4, 0.9, len(x)))[::-1]
-    bars = ax.bar(x, y, color=colors, alpha=0.8)
-    ax.set_ylabel('المبيعات', color='blue', fontsize=9)
-    ax.tick_params(axis='y', labelcolor='blue')
+    bars = ax.bar(x, y, color=colors, alpha=0.85, edgecolor='darkblue', linewidth=0.6)
+    ax.set_ylabel('المبيعات', color='blue', fontsize=10, fontweight='bold')
+    ax.tick_params(axis='y', labelcolor='blue', labelsize=9)
     
     total = sum(y)
     cumsum = 0
@@ -171,21 +172,47 @@ def _create_pareto_chart(data, title):
         cum_percentages.append((cumsum / total) * 100 if total > 0 else 0)
     
     ax2 = ax.twinx()
-    ax2.plot(x, cum_percentages, color='red', marker='o', linewidth=2, markersize=5)
-    ax2.axhline(y=80, color='red', linestyle='--', alpha=0.6)
-    ax2.text(len(x)-1, 83, '80%', color='red', fontsize=8, ha='right')
-    ax2.set_ylabel('النسبة التراكمية %', color='red', fontsize=9)
-    ax2.tick_params(axis='y', labelcolor='red')
+    ax2.plot(x, cum_percentages, color='#dc2626', marker='o', linewidth=2.5, markersize=6,
+             markeredgecolor='white', markeredgewidth=0.5)
+    ax2.axhline(y=80, color='#dc2626', linestyle='--', alpha=0.7, linewidth=2)
+    ax2.text(len(x)-1, 83, '80%', color='#dc2626', fontsize=9, fontweight='bold', ha='right')
+    ax2.set_ylabel('النسبة التراكمية %', color='#dc2626', fontsize=10, fontweight='bold')
+    ax2.tick_params(axis='y', labelcolor='#dc2626', labelsize=9)
     ax2.set_ylim(0, 105)
     
-    ax.set_title(title, fontsize=11)
-    plt.xticks(rotation=45, ha='right', fontsize=7)
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    # إضافة القيم فوق الأعمدة
+    max_y = max(y) if y else 1
+    for bar, val in zip(bars, y):
+        ax.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height() + max_y * 0.015,
+            f'{val/1e6:.1f}M',
+            ha='center',
+            va='bottom',
+            fontsize=7,
+            fontweight='bold',
+            rotation=0
+        )
     
-    plt.tight_layout(pad=0.5)
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=15)
+    
+    # ============================================================
+    # 🔥 التعديل المهم: تدوير النصوص بزاوية 45 درجة
+    # ============================================================
+    plt.xticks(rotation=45, ha='right', fontsize=8)
+    
+    # ============================================================
+    # 🔥 زيادة المسافة السفلية لتظهر النصوص كاملة
+    # ============================================================
+    plt.subplots_adjust(bottom=0.2)
+    
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format(int(x), ',')))
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    
+    plt.tight_layout()
     
     img_buffer = BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', facecolor='white')
+    plt.savefig(img_buffer, format='png', dpi=200, bbox_inches='tight', facecolor='white')
     img_buffer.seek(0)
     plt.close()
     return img_buffer
