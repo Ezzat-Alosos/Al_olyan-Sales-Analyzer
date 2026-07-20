@@ -32,7 +32,7 @@ def get_period_data(df: pd.DataFrame, year: int, comparison_type: str, period_va
 def _growth_percentage(current: pd.Series, previous: pd.Series) -> pd.Series:
     result = ((current - previous) / previous.replace(0, pd.NA)) * 100
     result = result.fillna(0)
-    result = result.mask((previous == 0) & (current > 0), 1)
+    result = result.mask((previous == 0) & (current > 0), 100)
     return result.astype(float)
 
 
