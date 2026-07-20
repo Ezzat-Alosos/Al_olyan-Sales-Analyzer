@@ -129,7 +129,7 @@ def _money(value) -> str:
 
 def _percent(value) -> str:
     try:
-        return f"{float(value):,.2%}"
+        return f"{float(value):,.2f}%"
     except (TypeError, ValueError):
         return str(value)
 
