@@ -32,7 +32,17 @@ def _autosize_and_style(worksheet):
             cell.border = THIN_BORDER
             cell.alignment = Alignment(horizontal="center", vertical="center")
             if isinstance(cell.value, (int, float)):
-                cell.number_format = '#,##0.00'
+                # ============================================================
+                # 🔥 التحقق من اسم العمود لتطبيق التنسيق المناسب
+                # ============================================================
+                header_cell = worksheet.cell(row=1, column=cell.column)
+                header_value = str(header_cell.value) if header_cell.value else ""
+                
+                # إذا كان العمود هو "النسبة" أو يحتوي على "نسبة"
+                if "نسبة" in header_value or header_value == "%":
+                    cell.number_format = '0.00%'
+                else:
+                    cell.number_format = '#,##0.00'
     for column_cells in worksheet.columns:
         max_length = 12
         column_letter = get_column_letter(column_cells[0].column)
@@ -42,12 +52,22 @@ def _autosize_and_style(worksheet):
         worksheet.column_dimensions[column_letter].width = max_length
 
 
+
 def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
     safe_frame = frame.copy()
     if safe_frame.empty:
         safe_frame = pd.DataFrame({"البيان": ["لا توجد بيانات"]})
+    
+    # ============================================================
+    # 🔥 التأكد من أن عمود "النسبة" يحتفظ بقيمته العددية
+    # ============================================================
+    if "النسبة" in safe_frame.columns:
+        safe_frame["النسبة"] = safe_frame["النسبة"].astype(float)
+    
     safe_frame.to_excel(writer, sheet_name=sheet_name, index=False)
     _autosize_and_style(writer.book[sheet_name])
+
+
 
 
 def _shorten_text(text, max_len=10):
