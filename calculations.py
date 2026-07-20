@@ -32,7 +32,7 @@ def get_period_data(df: pd.DataFrame, year: int, comparison_type: str, period_va
 def _growth_percentage(current: pd.Series, previous: pd.Series) -> pd.Series:
     result = ((current - previous) / previous.replace(0, pd.NA)) * 100
     result = result.fillna(0)
-    result = result.mask((previous == 0) & (current > 0), 100)
+    result = result.mask((previous == 0) & (current > 0), 1)
     return result.astype(float)
 
 
@@ -71,9 +71,9 @@ def dashboard_metrics(df: pd.DataFrame, current_year: int, previous_year: int, c
     current_total = float(current_df["المبيعات"].sum())
     previous_total = float(previous_df["المبيعات"].sum())
     difference = current_total - previous_total
-    growth = 0 if previous_total == 0 else (difference / previous_total) * 100
+    growth = 0 if previous_total == 0 else (difference / previous_total)
     if previous_total == 0 and current_total > 0:
-        growth = 100
+        growth = 1
     
     result = {
         "current_total": current_total,

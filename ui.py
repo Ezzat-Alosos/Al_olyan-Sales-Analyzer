@@ -410,7 +410,7 @@ def render_dashboard(metrics):
         <div class="metric-card {growth_class}">
             <span class="metric-icon">📈</span>
             <div class="metric-label">نسبة النمو</div>
-            <div class="metric-value">{metrics['growth']:.2f}%</div>
+            <div class="metric-value">{metrics['growth']:.2%}</div>
         </div>
         ''', unsafe_allow_html=True)
     
