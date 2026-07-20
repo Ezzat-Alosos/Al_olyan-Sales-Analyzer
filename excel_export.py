@@ -32,7 +32,7 @@ def _autosize_and_style(worksheet):
             cell.border = THIN_BORDER
             cell.alignment = Alignment(horizontal="center", vertical="center")
             if isinstance(cell.value, (int, float)):
-                cell.number_format = '0.00'
+                cell.number_format = '#,##0.00'
     for column_cells in worksheet.columns:
         max_length = 12
         column_letter = get_column_letter(column_cells[0].column)
