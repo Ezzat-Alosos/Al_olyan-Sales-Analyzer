@@ -557,7 +557,7 @@ def export_to_excel(
             {"المؤشر": "إجمالي المبيعات الحالية", "القيمة": metrics["current_total"]},
             {"المؤشر": "إجمالي المبيعات السابقة", "القيمة": metrics["previous_total"]},
             {"المؤشر": "إجمالي الفرق", "القيمة": metrics["difference"]},
-            {"المؤشر": "نسبة النمو", "القيمة": metrics["growth"]},
+            {"المؤشر": "نسبة النمو", "القيمة": f"{metrics['growth']:.2f}%"},
             {"المؤشر": "عدد العملاء", "القيمة": metrics["customers_count"]},
             {"المؤشر": "عدد المنتجات", "القيمة": metrics["products_count"]},
             {"المؤشر": "عدد المناديب", "القيمة": metrics["representatives_count"]},
