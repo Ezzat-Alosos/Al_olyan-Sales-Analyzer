@@ -71,9 +71,14 @@ def dashboard_metrics(df: pd.DataFrame, current_year: int, previous_year: int, c
     current_total = float(current_df["المبيعات"].sum())
     previous_total = float(previous_df["المبيعات"].sum())
     difference = current_total - previous_total
-    growth = 0 if previous_total == 0 else (difference / previous_total)
+    
+    # حساب نسبة النمو بشكل صحيح (كنسبة مئوية)
     if previous_total == 0 and current_total > 0:
-        growth = 1
+        growth = 100.0
+    elif previous_total == 0 and current_total == 0:
+        growth = 0.0
+    else:
+        growth = (difference / previous_total) * 100
     
     result = {
         "current_total": current_total,
