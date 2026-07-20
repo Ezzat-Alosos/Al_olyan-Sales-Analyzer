@@ -459,6 +459,13 @@ def render_analysis_table(df, key):
     shown = df.copy()
     if search:
         shown = shown[shown["الاسم"].astype(str).str.contains(search, case=False, na=False)]
+    
+    # ============================================================
+    # 🔥 تنسيق عمود النسبة بإضافة علامة %
+    # ============================================================
+    if "النسبة" in shown.columns:
+        shown["النسبة"] = shown["النسبة"].apply(lambda x: f"{x:.2f}%")
+    
     st.dataframe(shown, use_container_width=True, hide_index=True)
     st.download_button(
         "📥 تنزيل CSV",
