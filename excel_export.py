@@ -32,15 +32,15 @@ def _autosize_and_style(worksheet):
             cell.border = THIN_BORDER
             cell.alignment = Alignment(horizontal="center", vertical="center")
             if isinstance(cell.value, (int, float)):
-                # ============================================================
-                # 🔥 التحقق من اسم العمود لتطبيق التنسيق المناسب
-                # ============================================================
                 header_cell = worksheet.cell(row=1, column=cell.column)
                 header_value = str(header_cell.value) if header_cell.value else ""
                 
-                # إذا كان العمود هو "النسبة" أو يحتوي على "نسبة"
-                if "نسبة" in header_value or header_value == "%":
-                    cell.number_format = '0.00%'
+                # ============================================================
+                # 🔥 التحقق من اسم العمود لتطبيق التنسيق المناسب
+                # ============================================================
+                if "نسبة" in header_value or header_value == "%" or header_value == "النسبة":
+                    # استخدام تنسيق مخصص يعرض القيمة مع علامة %
+                    cell.number_format = '0.00"%"'
                 else:
                     cell.number_format = '#,##0.00'
     for column_cells in worksheet.columns:
@@ -50,7 +50,6 @@ def _autosize_and_style(worksheet):
             if cell.value is not None:
                 max_length = max(max_length, min(len(str(cell.value)) + 2, 45))
         worksheet.column_dimensions[column_letter].width = max_length
-
 
 
 def _write_sheet(writer, sheet_name: str, frame: pd.DataFrame):
