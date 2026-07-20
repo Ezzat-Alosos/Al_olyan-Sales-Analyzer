@@ -106,14 +106,31 @@ def _render_customer_analysis(customers):
     col4.metric("العملاء المتراجعون", len(segments["declining"]))
 
     segment_tabs = st.tabs(["الجدد", "المفقودون", "المتنامون", "المتراجعون"])
+    
     with segment_tabs[0]:
-        st.dataframe(segments["new"], use_container_width=True, hide_index=True)
+        df = segments["new"].copy()
+        if "النسبة" in df.columns:
+            df["النسبة"] = df["النسبة"].apply(lambda x: f"{x:.2f}%")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    
     with segment_tabs[1]:
-        st.dataframe(segments["lost"], use_container_width=True, hide_index=True)
+        df = segments["lost"].copy()
+        if "النسبة" in df.columns:
+            df["النسبة"] = df["النسبة"].apply(lambda x: f"{x:.2f}%")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    
     with segment_tabs[2]:
-        st.dataframe(segments["growing"], use_container_width=True, hide_index=True)
+        df = segments["growing"].copy()
+        if "النسبة" in df.columns:
+            df["النسبة"] = df["النسبة"].apply(lambda x: f"{x:.2f}%")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    
     with segment_tabs[3]:
-        st.dataframe(segments["declining"], use_container_width=True, hide_index=True)
+        df = segments["declining"].copy()
+        if "النسبة" in df.columns:
+            df["النسبة"] = df["النسبة"].apply(lambda x: f"{x:.2f}%")
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
 
 
 # ============================================================
